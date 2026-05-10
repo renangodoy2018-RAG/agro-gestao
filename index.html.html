@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1B3A5C">
+<title>AgroGestão — Agricultura Familiar</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --dark:#1B3A5C;--mid:#2E6DA4;--green:#1E8449;--orange:#E67E22;
+    --red:#C0392B;--gray:#555;--silver:#999;--white:#fff;
+    --lBlue:#EBF5FB;--lGreen:#D5F5E3;--lOrange:#FEF9E7;--lRed:#FDEDEC;
+    --emater:#2E7D32;--bg:#F0F4F8;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,.08);
+  }
+  html,body{height:100%;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:#222;font-size:15px}
+  button{cursor:pointer;font-family:inherit}
+  input,select{font-family:inherit}
+
+  /* ── TOPBAR ── */
+  .topbar{background:linear-gradient(135deg,var(--dark),var(--mid));padding:12px 16px;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .topbar-brand{color:#fff;font-weight:800;font-size:17px}
+  .topbar-sub{color:rgba(255,255,255,.7);font-size:11px;margin-top:2px}
+  .topbar-badge{background:rgba(255,255,255,.15);border-radius:8px;padding:4px 10px;
+    font-size:10px;color:rgba(255,255,255,.9);font-weight:700;white-space:nowrap}
+  .btn-logout{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);
+    border-radius:8px;padding:6px 12px;font-weight:600;font-size:12px}
+
+  /* ── AUTH ── */
+  #auth-screen{min-height:100vh;background:linear-gradient(135deg,var(--dark),var(--mid));
+    display:flex;align-items:center;justify-content:center;padding:16px}
+  .auth-card{background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:420px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .auth-logo{text-align:center;margin-bottom:24px}
+  .auth-logo .emoji{font-size:44px;display:block;margin-bottom:8px}
+  .auth-logo h1{font-size:22px;font-weight:900;color:var(--dark)}
+  .auth-logo p{font-size:12px;color:var(--silver);margin-top:4px}
+  .auth-logo .badge{margin-top:10px;background:#E8F5E9;border-radius:8px;padding:5px 12px;
+    display:inline-block;font-size:11px;color:var(--emater);font-weight:700}
+  .auth-tabs{display:flex;background:#F0F4F8;border-radius:10px;padding:4px;margin-bottom:20px}
+  .auth-tab{flex:1;padding:8px 0;border:none;border-radius:7px;font-weight:700;font-size:13px;
+    background:transparent;color:var(--silver);transition:all .2s}
+  .auth-tab.active{background:var(--dark);color:#fff}
+  .form-group{margin-bottom:13px}
+  .form-label{font-size:11px;color:var(--silver);font-weight:700;text-transform:uppercase;
+    letter-spacing:.5px;margin-bottom:5px;display:block}
+  .form-input{width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #DDD;
+    font-size:14px;color:var(--dark);transition:border-color .2s;background:#fff}
+  .form-input:focus{outline:none;border-color:var(--mid)}
+  .form-error{background:var(--lRed);color:var(--red);border-radius:8px;padding:9px 12px;
+    font-size:13px;margin-bottom:12px}
+  .btn-primary{width:100%;padding:12px;border:none;border-radius:10px;
+    background:var(--green);color:#fff;font-weight:700;font-size:14px;transition:all .2s}
+  .btn-primary:active{opacity:.85}
+  .btn-primary:disabled{background:#CCC;cursor:not-allowed}
+
+  /* ── MAIN ── */
+  #app-screen{display:none;min-height:100vh;flex-direction:column}
+  #app-screen.visible{display:flex}
+
+  .controls{background:#fff;padding:12px 14px;display:flex;gap:10px;
+    align-items:flex-end;flex-wrap:wrap;box-shadow:var(--shadow);margin-bottom:1px}
+  .ctrl-label{font-size:10px;color:var(--silver);font-weight:700;text-transform:uppercase;margin-bottom:5px}
+  .cultura-btns{display:flex;gap:6px;flex-wrap:wrap}
+  .cultura-btn{padding:7px 13px;border-radius:99px;border:none;font-weight:700;font-size:12px;
+    background:#E8ECF0;color:#555;transition:all .2s}
+  .cultura-btn.active{background:var(--dark);color:#fff}
+  .area-input{width:75px;padding:9px 10px;border-radius:8px;border:1.5px solid #DDD;
+    font-size:14px;font-weight:700;color:var(--dark)}
+
+  .tab-bar{display:flex;gap:3px;background:#fff;padding:5px;margin-bottom:1px;
+    box-shadow:var(--shadow)}
+  .tab-btn{flex:1;padding:10px 4px;border:none;border-radius:8px;font-weight:700;font-size:12px;
+    background:transparent;color:var(--silver);transition:all .2s}
+  .tab-btn.active{background:var(--dark);color:#fff}
+
+  .content{flex:1;padding:14px;overflow-y:auto;max-width:1000px;width:100%;margin:0 auto}
+
+  /* ── CARDS ── */
+  .card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+  .card-title{font-weight:700;color:var(--dark);font-size:14px;margin-bottom:12px}
+
+  /* ── KPI GRID ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .kpi{border-radius:10px;padding:12px 13px}
+  .kpi-label{font-size:10px;font-weight:700;color:var(--silver);text-transform:uppercase;margin-bottom:6px}
+  .kpi-value{font-size:16px;font-weight:800}
+  .kpi-sub{font-size:11px;color:var(--silver);margin-top:3px}
+
+  /* ── BADGE EMATER ── */
+  .emater-badge{background:#E8F5E9;border:1px solid #C8E6C9;border-radius:10px;
+    padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;
+    justify-content:space-between;align-items:center;gap:8px}
+  .emater-badge-text{font-size:12px;color:var(--emater);font-weight:700}
+  .emater-badge-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btn-restore{background:none;border:1px solid var(--emater);color:var(--emater);
+    border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700}
+
+  /* ── TABELA ── */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:680px}
+  th{background:var(--dark);color:#fff;padding:9px 10px;text-align:left;white-space:nowrap}
+  th.right{text-align:right}
+  td{padding:7px 10px;border-bottom:1px solid #F0F0F0;vertical-align:middle}
+  td.right{text-align:right}
+  tr:nth-child(even) td{background:#FAFBFC}
+  .td-emater{background:#F0F7FF;color:#666}
+  .td-edit{background:#EBF5FB}
+  .td-total{background:#D6EAF8;font-weight:700;color:var(--dark);white-space:nowrap}
+  .tr-subtotal td{background:var(--lBlue);font-weight:800;color:var(--mid);border-top:2px solid var(--mid)}
+  .tr-total td{background:var(--dark);color:#fff;font-weight:800;font-size:13px}
+  .tr-total td.big{font-size:16px}
+  .edit-input{width:86px;text-align:right;border:1.5px solid #AED6F1;border-radius:6px;
+    padding:4px 8px;font-size:12px;font-weight:700;color:var(--dark)}
+  .edit-input.changed{border-color:var(--orange);color:var(--orange)}
+
+  /* ── TOOLTIP ── */
+  .tooltip-wrap{position:relative;display:inline-flex;align-items:center}
+  .tooltip-btn{display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;border-radius:50%;background:var(--mid);color:#fff;
+    font-size:10px;font-weight:800;cursor:help;margin-left:5px;flex-shrink:0;border:none}
+  .tooltip-box{display:none;position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
+    background:var(--dark);color:#fff;border-radius:10px;padding:10px 13px;
+    max-width:260px;min-width:200px;font-size:12px;line-height:1.55;
+    z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.25);pointer-events:none;
+    white-space:normal;width:max-content}
+  .tooltip-wrap:hover .tooltip-box,
+  .tooltip-wrap.active .tooltip-box{display:block}
+  @media(max-width:600px){
+    .tooltip-box{left:0;transform:none;max-width:240px}
+  }
+
+  /* ── CANAIS ── */
+  .canal-card{border-radius:10px;padding:13px 15px;margin-bottom:10px;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+  .canal-title{font-weight:800;font-size:14px;margin-bottom:3px}
+  .canal-desc{font-size:11px;color:#666;max-width:340px}
+  .canal-kpis{display:flex;gap:8px;flex-wrap:wrap}
+  .canal-kpi{border-radius:8px;padding:7px 12px;text-align:center;min-width:90px}
+  .canal-kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:3px}
+  .canal-kpi-value{font-size:13px;font-weight:800}
+
+  /* ── CHARTS ── */
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.charts-grid{grid-template-columns:1fr}}
+  .chart-wrap{position:relative;height:200px}
+
+  /* ── DIÁRIO / CAIXA ── */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:480px){.form-grid{grid-template-columns:1fr}}
+  .form-grid .span2{grid-column:1/-1}
+  .tipo-btns{display:flex;gap:8px;margin-bottom:14px}
+  .tipo-btn{flex:1;padding:9px;border:none;border-radius:8px;font-weight:700;font-size:13px;
+    background:#EEE;color:var(--silver);transition:all .2s}
+  .tipo-btn.desp.active{background:var(--red);color:#fff}
+  .tipo-btn.rec.active{background:var(--green);color:#fff}
+  .btn-action{padding:10px 20px;border:none;border-radius:8px;
+    font-weight:700;font-size:13px;color:#fff;transition:all .2s}
+  .btn-action:active{opacity:.85}
+
+  .entry-list{display:flex;flex-direction:column;gap:7px}
+  .entry-item{display:flex;justify-content:space-between;align-items:flex-start;
+    background:#F8F9FA;border-radius:10px;padding:11px 13px;gap:8px}
+  .entry-main{flex:1}
+  .entry-title{font-weight:700;color:var(--dark);font-size:13px;display:flex;
+    align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+  .entry-sub{font-size:11px;color:var(--silver)}
+  .tag{border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700}
+  .entry-value{font-weight:800;font-size:15px;white-space:nowrap}
+  .btn-del{background:none;border:none;color:var(--red);font-size:16px;padding:0 2px;flex-shrink:0}
+
+  /* ── SALDO CARDS ── */
+  .saldo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+  @media(max-width:420px){.saldo-grid{grid-template-columns:1fr}}
+
+  /* ── EMPTY ── */
+  .empty{text-align:center;color:var(--silver);padding:28px 0;font-size:13px}
+
+  /* ── FOOTER ── */
+  .app-footer{text-align:center;padding:16px;font-size:10px;color:#BBB;line-height:1.6}
+
+  /* ── NOTA EMATER TOOLTIP ── */
+  .hint{font-size:11px;color:var(--mid);font-weight:600;display:flex;align-items:center;gap:5px}
+  .obs-list{padding:10px 14px;background:#F8FFF8;border-top:1px solid #E0E0E0;border-radius:0 0 var(--radius) var(--radius)}
+  .obs-title{font-size:11px;font-weight:700;color:var(--emater);margin-bottom:4px}
+  .obs-item{font-size:11px;color:#555;margin-top:2px}
+  .table-footer{padding:8px 14px;background:#F0F4F8;font-size:10px;color:var(--silver);
+    border-radius:0 0 var(--radius) var(--radius)}
+
+  /* ── MOBILE ADJUST ── */
+  @media(max-width:600px){
+    .content{padding:10px}
+    .card{padding:13px 12px}
+    .kpi-grid{grid-template-columns:1fr 1fr}
+    .saldo-grid{grid-template-columns:1fr 1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH ══════════════════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="emoji">🌱</span>
+      <h1>AgroGestão</h1>
+      <p>Sistema de Gestão · Agricultura Familiar</p>
+      <div class="badge">📋 Dados oficiais: EMATER/DF 2025</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">🔑 Entrar</button>
+      <button class="auth-tab" onclick="switchTab('cadastro')">📝 Cadastrar</button>
+    </div>
+    <div id="tab-login">
+      <div class="form-group">
+        <label class="form-label">Seu nome</label>
+        <input class="form-input" id="login-nome" placeholder="Como você se chama" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">PIN (4 dígitos)</label>
+        <input class="form-input" id="login-pin" placeholder="••••" type="password" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="form-error" id="login-erro" style="display:none"></div>
+      <button class="btn-primary" onclick="doLogin()">Entrar no Sistema</button>
+    </div>
+    <div id="tab-cadastro" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Nome completo</label>
+        <input class="form-input" id="cad-nome" placeholder="Nome do produtor" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome da propriedade</label>
+        <input class="form-input" id="cad-prop" placeholder="Ex: Sítio Esperança" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Município / Estado</label>
+        <input class="form-input" id="cad-mun" placeholder="Ex: Mogi das Cruzes - SP" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Criar PIN (4 dígitos)</label>
+        <input class="form-input" id="cad-pin" placeholder="••••" type="password" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar PIN</label>
+        <input class="form-input" id="cad-pin2" placeholder="••••" type="password" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="form-error" id="cad-erro" style="display:none"></div>
+      <button class="btn-primary" onclick="doCadastro()">Criar Conta e Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ════════════════════════════════════════════════════════════ -->
+<div id="app-screen">
+  <div class="topbar">
+    <div>
+      <div class="topbar-brand">🌱 AgroGestão</div>
+      <div class="topbar-sub" id="user-info">Carregando...</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="topbar-badge">EMATER/DF 2025</span>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div>
+      <div class="ctrl-label">Cultura</div>
+      <div class="cultura-btns" id="cultura-btns"></div>
+    </div>
+    <div>
+      <div class="ctrl-label">Área (ha)</div>
+      <input class="area-input" id="area-input" type="number" min="0.1" max="100" step="0.5" value="1" onchange="renderAtividade()">
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchAba('planilha',this)">📋 Custos</button>
+    <button class="tab-btn" onclick="switchAba('diario',this)">🌿 Diário</button>
+    <button class="tab-btn" onclick="switchAba('caixa',this)">💰 Caixa</button>
+  </div>
+
+  <div class="content" id="main-content"></div>
+
+  <div class="app-footer">
+    AgroGestão · TG FATEC Mogi das Cruzes — Gestão em Agronegócio 2026<br>
+    Dados: EMATER-DF / SEAGRI-DF · Custo de Produção 2º Semestre 2025
+  </div>
+</div>
+
+<script>
+// ══ DADOS EMATER/DF 2025 ══════════════════════════════════════════
+const DESC = {
+  "Adubo mineral 20-00-20":"Fertilizante com nitrogênio (N) e potássio (K). Usado na adubação de cobertura — aplicado após o plantio para alimentar a planta durante o crescimento.",
+  "Adubo mineral 4-30-16":"Fertilizante rico em fósforo, usado no plantio. O fósforo estimula o enraizamento e o desenvolvimento inicial das plantas.",
+  "Adubo mineral Sulfato de zinco":"Micronutriente que corrige a falta de zinco no solo. Melhora o vigor da planta e a produtividade final.",
+  "Agrotóxico Metribuzin 480 G/L":"Herbicida pré-emergente — aplicado antes das ervas daninhas nascerem. Evita que o mato concorra com a mandioca nos primeiros meses.",
+  "Agrotóxico Sulfluramida":"Formicida para eliminar formigas cortadeiras (saúva e quenquém). As formigas podem destruir a lavoura rapidamente se não forem controladas.",
+  "Mudas de Mandioca (Manivas)":"Pedaços de rama (galho) que servem como semente. Cada pedaço de 20-30 cm é enterrado e brota, dando origem a uma nova planta.",
+  "Adubação (Manual de cobertura)":"Aplicação manual de adubo ao lado das plantas após o plantio, coberto levemente com terra para não perder nutrientes.",
+  "Adubos (Distribuição manual)":"Espalhamento manual do adubo no sulco de plantio antes de cobrir com terra.",
+  "Agrotóxico (Aplic. de formicida)":"Aplicação de produto contra formigas nos formigueiros próximos à lavoura.",
+  "Agrotóxico (Aplicação)":"Pulverização de defensivos agrícolas com bomba costal ou tratorizado. Controla pragas e doenças.",
+  "Capina (Manual)":"Limpeza manual da área entre as plantas para eliminar ervas daninhas, que competem com a cultura por água, luz e nutrientes.",
+  "Colheita/Classificação/Acondic.":"Colher, separar por tamanho e qualidade, e colocar nas caixas para venda. É a operação mais trabalhosa — exige muito esforço físico.",
+  "Manivas (Seleção e Corte)":"Escolha dos ramos mais saudáveis e corte nos tamanhos certos para usar como semente. Manivas bem selecionadas garantem maior brotação.",
+  "Plantio e replantio":"Colocação das manivas no sulco (plantio) e substituição das que não brotaram 15-30 dias depois (replantio).",
+  "Preparo do solo (Aração)":"Revolvimento profundo do solo com arado. Solta a terra compactada e facilita o crescimento das raízes.",
+  "Preparo do solo (Gradagem)":"Operação após a aração para destorroar e nivelar o solo, deixando-o pronto para o plantio.",
+  "Adubo mineral 4-30-10":"Fertilizante rico em fósforo para o plantio do tomate. Estimula o enraizamento e o florescimento precoce das mudas.",
+  "Adubo mineral Ácido bórico":"Micronutriente que melhora a frutificação e evita a 'podridão apical' (fundo preto do tomate). Sem boro, os frutos nascem com mancha escura na ponta.",
+  "Adubo mineral Ácido Fosfórico":"Fertilizante fosfatado líquido aplicado via gotejamento, levando fósforo diretamente para a raiz com eficiência.",
+  "Adubo mineral Cloreto de potássio branco":"Fonte de potássio para melhorar qualidade, sabor e firmeza dos frutos. Sem potássio os frutos ficam moles e com cor ruim.",
+  "Adubo mineral Nitrato de cálcio":"Fornece cálcio e nitrogênio. O cálcio evita a podridão apical e deixa os frutos firmes. Aplicado frequentemente durante todo o ciclo.",
+  "Adubo mineral Sulfato de magnésio":"Fornece magnésio, essencial para a fotossíntese. Falta de magnésio causa amarelamento das folhas e reduz a produção.",
+  "Adubo mineral Termofosfato":"Fertilizante fosfatado de liberação lenta, ideal para solos ácidos. Corrige acidez e disponibiliza fósforo gradualmente.",
+  "Adubo orgânico (Cama de frango)":"Esterco de galinheiro rico em nutrientes. Melhora a estrutura do solo, aumenta retenção de água e ativa microrganismos benéficos.",
+  "Agrotóxico Abamectina 18 g/l":"Inseticida e acaricida que combate ácaros e o minador-das-folhas. Muito usado no início do ciclo do tomate.",
+  "Agrotóxico Acibenzolar S-Metílico":"'Vacina' para a planta — ativa as defesas naturais do tomateiro contra doenças. Não mata diretamente, mas fortalece a planta.",
+  "Agrotóxico Ciantoniprole+Lambda-cialotrina":"Inseticida duplo para lagartas, pulgões, mosca-branca e percevejos. Usado quando a pressão de pragas é alta.",
+  "Agrotóxico Clorfenapir 240 g/l":"Inseticida e acaricida para pragas resistentes. Usado em rotação para evitar resistência.",
+  "Agrotóxico Difenoconazol 250 g/l":"Fungicida sistêmico (entra na planta) para pinta-preta, requeima e outras doenças fúngicas graves do tomate.",
+  "Agrotóxico Espinosade 480 g/L":"Inseticida de origem biológica para lagartas e trips. Eficaz e menos agressivo ao meio ambiente.",
+  "Agrotóxico Fenpropatrina 300 g/kg":"Acaricida e inseticida piretroide para controle de ácaros no tomateiro.",
+  "Agrotóxico Isocicloseram 200 g/l":"Inseticida moderno para mosca-branca, vetor de vírus no tomate. Usado quando outros produtos não funcionam.",
+  "Agrotóxico Mancozebe 800 g/kg":"Fungicida de contato para prevenção de requeima e mancha-de-septória. Aplicado regularmente como proteção.",
+  "Agrotóxico Oxicloreto de cobre 840 g/kg":"Fungicida e bactericida à base de cobre. Controla doenças fúngicas e bacterianas. Produto tradicional e de baixo custo.",
+  "Energia elétrica p/ irrigação":"Custo com energia elétrica para bombear água no sistema de irrigação — alto no gotejamento pois a bomba funciona diariamente.",
+  "Mulching (bobina 1,6m × 1000m)":"Filme de plástico preto sobre os canteiros. Impede ervas daninhas, mantém umidade e melhora a temperatura das raízes.",
+  "Sementes de Tomate híbrido":"Sementes híbridas F1 para alta produtividade, resistência a doenças e frutos uniformes. São caras, mas garantem melhor resultado.",
+  "Adubos (Incorporação mecânica c/ trator)":"Mistura dos adubos ao solo usando trator. Garante distribuição uniforme dos nutrientes em toda a área.",
+  "Construção (Suporte)":"Instalação de estacas e arame para sustentar as plantas verticalmente. Sem suporte, as plantas tombam e os frutos apodrecem.",
+  "Desbrota e amarrio":"Desbrota: retirar brotos laterais para concentrar energia nos frutos. Amarrio: amarrar galhos ao arame. Feito semanalmente — a operação que mais emprega mão de obra.",
+  "Fertirrigação":"Aplicação de fertilizantes líquidos misturados à água de irrigação. Leva nutrientes diretamente para as raízes com alta eficiência.",
+  "Irrigação (Gotejamento)":"Operação diária do sistema de gotejamento — água entregue na raiz, economizando e reduzindo doenças foliares.",
+  "Irrigação (Montagem do sistema)":"Instalação das mangueiras de gotejamento, conexões e filtros antes do plantio.",
+  "Mudas (Formação — bandejas 128 células)":"Produção das mudas em bandejas especiais por 25-30 dias antes de ir ao campo.",
+  "Mulching (Aplicação de cobertura plástica)":"Colocação do filme plástico sobre os canteiros com furos para o transplantio.",
+  "Preparo do solo (Levant. canteiro c/trator)":"Formação de canteiros elevados com trator. Melhora drenagem e evita encharcamento.",
+  "Transplantio":"Transferência das mudas da bandeja para o campo. Operação delicada — mudas devem ser irrigadas imediatamente.",
+  "Adubo mineral Sulfato de amônio":"Fonte de nitrogênio e enxofre. O enxofre melhora a proteína e qualidade dos grãos do milho verde.",
+  "Agrotóxico Atrazina 370g/l + S-Metolachlor 290g/l":"Herbicida para controle de ervas daninhas na lavoura de milho — atua em gramíneas e plantas de folha larga.",
+  "Agrotóxico Lambda-cialotrina 250 g/l":"Inseticida para pragas iniciais na lavoura de milho, como pulgões e insetos sugadores.",
+  "Agrotóxico Triflumurom 480 g/l":"Inseticida para lagarta-do-cartucho, a principal praga do milho. A lagarta entra no cartucho e come as folhas novas.",
+  "Sementes de Milho Verde":"Sementes de variedade específica para milho verde — colhido antes da maturação, quando os grãos estão macios e doces.",
+  "Plantio (Mecânico)":"Plantio com plantadeira tratorizada. Garante espaçamento uniforme, profundidade correta e velocidade superior ao plantio manual.",
+  "Irrigação (Aspersão)":"Operação do sistema de aspersão — simula a chuva sobre a lavoura. Milho irrigado tem produtividade muito superior ao de sequeiro.",
+  "Adubo mineral Uréia":"Fertilizante nitrogenado de cobertura. O nitrogênio é fundamental para o crescimento rápido das folhas da alface.",
+  "Agrotóxico Azadiractina 12g/l":"Inseticida natural derivado do nim. Controla pulgões, trips e lagartas com baixo impacto ambiental — opção para produção orgânica.",
+  "Agrotóxico Imidacloprido 700 g/kg":"Inseticida sistêmico para pulgões e mosca-minadora na alface. Age de dentro para fora protegendo a cultura.",
+  "Agrotóxico Iprodiona 500 g/l":"Fungicida para podridão-de-esclerotínia (mofo-branco), que apodrece o caule da alface. Comum em períodos úmidos.",
+  "Mudas (Formação — bandejas 200 células)":"Produção das mudas de alface em bandeja especial. Fica de 15-20 dias antes de ir ao canteiro final.",
+  "Preparo solo (Lev. cant. c/ rotoencanteirador)":"Formação mecanizada de canteiros altos. Garante boa drenagem para as raízes rasas da alface.",
+};
+
+const CULTURAS = {
+  mandioca:{nome:"Mandioca de Mesa",emoji:"🌿",subtitulo:"Média Tecnologia",ciclo:"12 meses",unidade:"cx/20kg",
+    prod_ref:1200,custo_unit_ref:10.68,p_mercado:18,p_paa:20,p_pnae:22,
+    fonte:"EMATER/DF — 2º Sem. 2025",
+    obs:["1 capina prevista até 90 dias (herbicida pré-emergente aplicado)","Rendimento de colheita: 30 caixas por dia homem"],
+    operacoes:["Seleção e corte de manivas","Plantio e replantio","Distribuição de adubos","Adubação de cobertura","Aplicação de herbicida","Aplicação de formicida","Capina manual","Colheita/Classificação/Acondicionamento","Outra"],
+    custos:[
+      {g:"Insumos",item:"Adubo mineral 20-00-20",un:"sc/50kg",qtd:4,vu:170.74,vh:682.97},
+      {g:"Insumos",item:"Adubo mineral 4-30-16",un:"sc/50kg",qtd:6,vu:304.22,vh:1825.32},
+      {g:"Insumos",item:"Adubo mineral Sulfato de zinco",un:"kg",qtd:20,vu:8.19,vh:163.79},
+      {g:"Insumos",item:"Agrotóxico Metribuzin 480 G/L",un:"L",qtd:1,vu:166.37,vh:166.37},
+      {g:"Insumos",item:"Agrotóxico Sulfluramida",un:"kg",qtd:2,vu:22,vh:44},
+      {g:"Insumos",item:"Mudas de Mandioca (Manivas)",un:"m³",qtd:5,vu:165,vh:825},
+      {g:"Serviços",item:"Adubação (Manual de cobertura)",un:"d/h",qtd:2,vu:110,vh:220},
+      {g:"Serviços",item:"Adubos (Distribuição manual)",un:"d/h",qtd:4,vu:110,vh:440},
+      {g:"Serviços",item:"Agrotóxico (Aplic. de formicida)",un:"d/h",qtd:1,vu:110,vh:110},
+      {g:"Serviços",item:"Agrotóxico (Aplicação)",un:"d/h",qtd:2,vu:110,vh:220},
+      {g:"Serviços",item:"Capina (Manual)",un:"d/h",qtd:15,vu:110,vh:1650},
+      {g:"Serviços",item:"Colheita/Classificação/Acondic.",un:"d/h",qtd:40,vu:110,vh:4400},
+      {g:"Serviços",item:"Manivas (Seleção e Corte)",un:"d/h",qtd:2,vu:110,vh:220},
+      {g:"Serviços",item:"Plantio e replantio",un:"d/h",qtd:5,vu:110,vh:550},
+      {g:"Serviços",item:"Preparo do solo (Aração)",un:"h/m",qtd:3,vu:260,vh:780},
+      {g:"Serviços",item:"Preparo do solo (Gradagem)",un:"h/m",qtd:2,vu:260,vh:520},
+    ]},
+  tomate:{nome:"Tomate",emoji:"🍅",subtitulo:"Campo — Gotejamento",ciclo:"5 meses",unidade:"cx/20kg",
+    prod_ref:4000,custo_unit_ref:23.18,p_mercado:35,p_paa:40,p_pnae:42,
+    fonte:"EMATER/DF — 2º Sem. 2025",
+    obs:["Plantio 1,5m×0,5m em canteiros com gotejamento e mulching","~13.200 plantas/ha · Colheita: 50 cx/dia.homem","Estacas e arame considerados como investimento (não incluídos)"],
+    operacoes:["Preparo do solo","Implantação irrigação","Aplicação de mulching","Formação de mudas","Transplantio","Construção de suporte","Fertirrigação","Desbrota e amarrio","Aplicação de agrotóxico","Colheita/Classificação","Outra"],
+    custos:[
+      {g:"Insumos",item:"Adubo mineral 4-30-10",un:"sc/50kg",qtd:30,vu:225.70,vh:6770.85},
+      {g:"Insumos",item:"Adubo mineral Ácido bórico",un:"kg",qtd:20,vu:9.56,vh:191.20},
+      {g:"Insumos",item:"Adubo mineral Ácido Fosfórico",un:"kg",qtd:10,vu:50,vh:500},
+      {g:"Insumos",item:"Adubo mineral Cloreto de potássio branco",un:"sc/25kg",qtd:40,vu:95.85,vh:3834},
+      {g:"Insumos",item:"Adubo mineral Nitrato de cálcio",un:"sc/25kg",qtd:100,vu:89.19,vh:8918.67},
+      {g:"Insumos",item:"Adubo mineral Sulfato de magnésio",un:"sc/25kg",qtd:6,vu:73.83,vh:442.96},
+      {g:"Insumos",item:"Adubo mineral Sulfato de zinco",un:"kg",qtd:20,vu:8.78,vh:175.59},
+      {g:"Insumos",item:"Adubo mineral Termofosfato",un:"sc/40kg",qtd:36,vu:148.52,vh:5346.54},
+      {g:"Insumos",item:"Adubo orgânico (Cama de frango)",un:"t",qtd:15,vu:350,vh:5250},
+      {g:"Insumos",item:"Agrotóxico Abamectina 18 g/l",un:"L",qtd:2,vu:96.32,vh:192.64},
+      {g:"Insumos",item:"Agrotóxico Acibenzolar S-Metílico",un:"kg",qtd:0.1,vu:3252.80,vh:325.28},
+      {g:"Insumos",item:"Agrotóxico Ciantoniprole+Lambda-cialotrina",un:"L",qtd:0.8,vu:766,vh:612.80},
+      {g:"Insumos",item:"Agrotóxico Clorfenapir 240 g/l",un:"L",qtd:1.5,vu:104.08,vh:156.12},
+      {g:"Insumos",item:"Agrotóxico Difenoconazol 250 g/l",un:"L",qtd:1.2,vu:73.86,vh:88.63},
+      {g:"Insumos",item:"Agrotóxico Espinosade 480 g/L",un:"L",qtd:0.51,vu:2577.60,vh:1314.58},
+      {g:"Insumos",item:"Agrotóxico Fenpropatrina 300 g/kg",un:"L",qtd:0.3,vu:116.62,vh:34.99},
+      {g:"Insumos",item:"Agrotóxico Isocicloseram 200 g/l",un:"L",qtd:0.4,vu:2224.46,vh:889.78},
+      {g:"Insumos",item:"Agrotóxico Mancozebe 800 g/kg",un:"kg",qtd:30,vu:40.48,vh:1214.40},
+      {g:"Insumos",item:"Agrotóxico Oxicloreto de cobre 840 g/kg",un:"kg",qtd:8,vu:78.17,vh:625.32},
+      {g:"Insumos",item:"Energia elétrica p/ irrigação",un:"kwh",qtd:1065,vu:0.95,vh:1011.75},
+      {g:"Insumos",item:"Mulching (bobina 1,6m × 1000m)",un:"und",qtd:6.6,vu:1133.62,vh:7481.86},
+      {g:"Insumos",item:"Sementes de Tomate híbrido",un:"mil",qtd:14,vu:669.60,vh:9374.33},
+      {g:"Serviços",item:"Adubos (Distribuição manual)",un:"d/h",qtd:4,vu:110,vh:440},
+      {g:"Serviços",item:"Adubos (Incorporação mecânica c/ trator)",un:"h/m",qtd:4,vu:260,vh:1040},
+      {g:"Serviços",item:"Agrotóxico (Aplicação)",un:"d/h",qtd:30,vu:110,vh:3300},
+      {g:"Serviços",item:"Colheita/Classificação/Acondicionamento",un:"d/h",qtd:80,vu:110,vh:8800},
+      {g:"Serviços",item:"Construção (Suporte)",un:"d/h",qtd:20,vu:110,vh:2200},
+      {g:"Serviços",item:"Desbrota e amarrio",un:"d/h",qtd:120,vu:110,vh:13200},
+      {g:"Serviços",item:"Fertirrigação",un:"d/h",qtd:12,vu:110,vh:1320},
+      {g:"Serviços",item:"Irrigação (Gotejamento)",un:"d/h",qtd:6,vu:110,vh:660},
+      {g:"Serviços",item:"Irrigação (Montagem do sistema)",un:"d/h",qtd:4,vu:110,vh:440},
+      {g:"Serviços",item:"Mudas (Formação — bandejas 128 células)",un:"und",qtd:109,vu:20,vh:2180},
+      {g:"Serviços",item:"Mulching (Aplicação de cobertura plástica)",un:"d/h",qtd:14,vu:110,vh:1540},
+      {g:"Serviços",item:"Preparo do solo (Aração)",un:"h/m",qtd:3,vu:260,vh:780},
+      {g:"Serviços",item:"Preparo do solo (Gradagem)",un:"h/m",qtd:2,vu:260,vh:520},
+      {g:"Serviços",item:"Preparo do solo (Levant. canteiro c/trator)",un:"h/m",qtd:4,vu:260,vh:1040},
+      {g:"Serviços",item:"Transplantio",un:"d/h",qtd:4.5,vu:110,vh:495},
+    ]},
+  milho:{nome:"Milho Verde",emoji:"🌽",subtitulo:"Com irrigação por aspersão",ciclo:"4 meses",unidade:"unidade",
+    prod_ref:35000,custo_unit_ref:0.34,p_mercado:0.80,p_paa:1.00,p_pnae:1.10,
+    fonte:"EMATER/DF — 2º Sem. 2025",obs:[],
+    operacoes:["Preparo do solo (Aração)","Preparo do solo (Gradagem)","Plantio mecânico","Adubação de cobertura","Irrigação (Aspersão)","Aplicação de agrotóxico","Colheita/Classificação/Acondicionamento","Outra"],
+    custos:[
+      {g:"Insumos",item:"Adubo mineral 20-00-20",un:"sc/50kg",qtd:5,vu:178.38,vh:891.90},
+      {g:"Insumos",item:"Adubo mineral 4-30-16",un:"sc/50kg",qtd:16,vu:243.35,vh:3893.60},
+      {g:"Insumos",item:"Adubo mineral Sulfato de amônio",un:"sc/50kg",qtd:5,vu:134.36,vh:671.82},
+      {g:"Insumos",item:"Agrotóxico Atrazina 370g/l + S-Metolachlor 290g/l",un:"L",qtd:4,vu:51.35,vh:205.40},
+      {g:"Insumos",item:"Agrotóxico Lambda-cialotrina 250 g/l",un:"L",qtd:0.06,vu:96.92,vh:5.82},
+      {g:"Insumos",item:"Agrotóxico Triflumurom 480 g/l",un:"L",qtd:0.5,vu:210,vh:105},
+      {g:"Insumos",item:"Energia elétrica p/ irrigação",un:"kwh",qtd:1223,vu:0.95,vh:1161.85},
+      {g:"Insumos",item:"Sementes de Milho Verde",un:"kg",qtd:15,vu:49.50,vh:742.50},
+      {g:"Serviços",item:"Adubação (Manual de cobertura)",un:"d/h",qtd:4,vu:110,vh:440},
+      {g:"Serviços",item:"Agrotóxico (Aplicação)",un:"d/h",qtd:6,vu:110,vh:660},
+      {g:"Serviços",item:"Colheita/Classificação/Acondicionamento",un:"d/h",qtd:10,vu:110,vh:1100},
+      {g:"Serviços",item:"Irrigação (Aspersão)",un:"d/h",qtd:4,vu:110,vh:440},
+      {g:"Serviços",item:"Plantio (Mecânico)",un:"h/m",qtd:1,vu:260,vh:260},
+      {g:"Serviços",item:"Preparo do solo (Aração)",un:"h/m",qtd:3,vu:260,vh:780},
+      {g:"Serviços",item:"Preparo do solo (Gradagem)",un:"h/m",qtd:2,vu:260,vh:520},
+    ]},
+  alface:{nome:"Alface",emoji:"🥬",subtitulo:"Aspersão",ciclo:"45 dias",unidade:"cx/5kg",
+    prod_ref:4100,custo_unit_ref:10.75,p_mercado:14,p_paa:16,p_pnae:17,
+    fonte:"EMATER/DF — 2º Sem. 2025",
+    obs:["Espaçamento 0,25m×0,25m · 105.600 plantas/ha · Perdas: 5%","30% das plantas não colhidas · Colheita: 50 cx/dia homem"],
+    operacoes:["Preparo do solo","Formação de mudas","Transplantio","Distribuição de adubos","Adubação de cobertura","Capina manual","Irrigação (Aspersão)","Aplicação de agrotóxico","Colheita/Classificação/Acondicionamento","Outra"],
+    custos:[
+      {g:"Insumos",item:"Adubo mineral 4-30-16",un:"sc/50kg",qtd:20,vu:243.35,vh:4867},
+      {g:"Insumos",item:"Adubo mineral Sulfato de zinco",un:"kg",qtd:20,vu:8.78,vh:175.59},
+      {g:"Insumos",item:"Adubo mineral Uréia",un:"sc/50kg",qtd:2,vu:241.78,vh:483.56},
+      {g:"Insumos",item:"Adubo orgânico (Cama de frango)",un:"t",qtd:10,vu:350,vh:3500},
+      {g:"Insumos",item:"Agrotóxico Azadiractina 12g/l",un:"L",qtd:1.5,vu:284.26,vh:426.39},
+      {g:"Insumos",item:"Agrotóxico Imidacloprido 700 g/kg",un:"kg",qtd:0.3,vu:112,vh:33.60},
+      {g:"Insumos",item:"Agrotóxico Iprodiona 500 g/l",un:"L",qtd:3,vu:197.74,vh:593.22},
+      {g:"Insumos",item:"Energia elétrica p/ irrigação",un:"kwh",qtd:642,vu:0.95,vh:609.90},
+      {g:"Serviços",item:"Adubação (Manual de cobertura)",un:"d/h",qtd:3,vu:110,vh:330},
+      {g:"Serviços",item:"Adubos (Distribuição manual)",un:"d/h",qtd:4,vu:110,vh:440},
+      {g:"Serviços",item:"Agrotóxico (Aplicação)",un:"d/h",qtd:5,vu:110,vh:550},
+      {g:"Serviços",item:"Capina (Manual)",un:"d/h",qtd:60,vu:110,vh:6600},
+      {g:"Serviços",item:"Colheita/Classificação/Acondicionamento",un:"d/h",qtd:82,vu:110,vh:9020},
+      {g:"Serviços",item:"Irrigação (Aspersão)",un:"d/h",qtd:2,vu:110,vh:220},
+      {g:"Serviços",item:"Irrigação (Montagem do sistema)",un:"d/h",qtd:2,vu:110,vh:220},
+      {g:"Serviços",item:"Mudas (Formação — bandejas 200 células)",un:"und",qtd:554,vu:20.50,vh:11357},
+      {g:"Serviços",item:"Preparo solo (Lev. cant. c/ rotoencanteirador)",un:"h/m",qtd:4,vu:260,vh:1040},
+      {g:"Serviços",item:"Preparo do solo (Aração)",un:"h/m",qtd:3,vu:260,vh:780},
+      {g:"Serviços",item:"Preparo do solo (Gradagem)",un:"h/m",qtd:2,vu:260,vh:520},
+      {g:"Serviços",item:"Transplantio",un:"d/h",qtd:21,vu:110,vh:2310},
+    ]},
+};
+
+// ══ UTILS ════════════════════════════════════════════════════════
+const fmt = v => 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN= v => Number(v).toLocaleString('pt-BR',{maximumFractionDigits:1});
+const today= ()=>new Date().toISOString().slice(0,10);
+const uid  = ()=>Math.random().toString(36).slice(2,9);
+const br   = d => d.split('-').reverse().join('/');
+
+// ══ STATE ════════════════════════════════════════════════════════
+let user = null;
+let culturaSel = 'mandioca';
+let abaAtiva = 'planilha';
+let chartPie = null, chartBar = null;
+
+// ══ STORAGE ══════════════════════════════════════════════════════
+const LS = {
+  get:(k)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch{return null;}},
+  set:(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} },
+};
+
+function getOv(cKey){ return LS.get(`agro_ov_${user.id}_${cKey}`) || {}; }
+function setOv(cKey,ov){ LS.set(`agro_ov_${user.id}_${cKey}`,ov); }
+function getVh(cKey,idx){ const ov=getOv(cKey); return ov[idx]!==undefined?ov[idx]:CULTURAS[cKey].custos[idx].vh; }
+
+function getDiary(){ return LS.get(`agro_diary_${user.id}`) || []; }
+function setDiary(d){ LS.set(`agro_diary_${user.id}`,d); }
+function getCaixa(){ return LS.get(`agro_caixa_${user.id}`) || []; }
+function setCaixa(d){ LS.set(`agro_caixa_${user.id}`,d); }
+
+// ══ AUTH ═════════════════════════════════════════════════════════
+function switchTab(tab){
+  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-login').style.display = tab==='login'?'':'none';
+  document.getElementById('tab-cadastro').style.display = tab==='cadastro'?'':'none';
+}
+
+function showErr(id,msg){ const el=document.getElementById(id); el.textContent=msg; el.style.display='block'; }
+function hideErr(id){ document.getElementById(id).style.display='none'; }
+
+function doLogin(){
+  hideErr('login-erro');
+  const nome=document.getElementById('login-nome').value.trim();
+  const pin=document.getElementById('login-pin').value;
+  if(!nome||!pin){ showErr('login-erro','Preencha nome e PIN.'); return; }
+  const users=LS.get('agro_users')||{};
+  const key=nome.toLowerCase();
+  if(!users[key]){ showErr('login-erro','Produtor não cadastrado. Faça o cadastro.'); return; }
+  if(users[key].pin!==pin){ showErr('login-erro','PIN incorreto.'); return; }
+  loginSuccess({id:key,...users[key]});
+}
+
+function doCadastro(){
+  hideErr('cad-erro');
+  const nome=document.getElementById('cad-nome').value.trim();
+  const prop=document.getElementById('cad-prop').value.trim();
+  const mun=document.getElementById('cad-mun').value.trim();
+  const pin=document.getElementById('cad-pin').value;
+  const pin2=document.getElementById('cad-pin2').value;
+  if(!nome||!prop||!mun||!pin||!pin2){ showErr('cad-erro','Preencha todos os campos.'); return; }
+  if(pin.length!==4||isNaN(pin)){ showErr('cad-erro','PIN deve ter exatamente 4 números.'); return; }
+  if(pin!==pin2){ showErr('cad-erro','Os PINs não coincidem.'); return; }
+  const users=LS.get('agro_users')||{};
+  const key=nome.toLowerCase();
+  if(users[key]){ showErr('cad-erro','Produtor já cadastrado. Faça o login.'); return; }
+  users[key]={nome,propriedade:prop,municipio:mun,pin,cadastro:today()};
+  LS.set('agro_users',users);
+  loginSuccess({id:key,...users[key]});
+}
+
+function loginSuccess(u){
+  user=u;
+  LS.set('agro_session',u);
+  document.getElementById('auth-screen').style.display='none';
+  const app=document.getElementById('app-screen');
+  app.classList.add('visible');
+  document.getElementById('user-info').textContent=`${u.propriedade} · ${u.municipio} · ${u.nome}`;
+  buildCulturaBtns();
+  renderAtividade();
+}
+
+function doLogout(){
+  user=null;
+  LS.set('agro_session',null);
+  document.getElementById('app-screen').classList.remove('visible');
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('login-nome').value='';
+  document.getElementById('login-pin').value='';
+}
+
+// ══ NAV ══════════════════════════════════════════════════════════
+function buildCulturaBtns(){
+  const wrap=document.getElementById('cultura-btns');
+  wrap.innerHTML=Object.entries(CULTURAS).map(([k,c])=>
+    `<button class="cultura-btn${k===culturaSel?' active':''}" onclick="selectCultura('${k}')">${c.emoji} ${c.nome}</button>`
+  ).join('');
+}
+
+function selectCultura(k){
+  culturaSel=k;
+  document.querySelectorAll('.cultura-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderAtividade();
+}
+
+function switchAba(aba,btn){
+  abaAtiva=aba;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAtividade();
+}
+
+function getArea(){ return parseFloat(document.getElementById('area-input').value)||1; }
+
+function renderAtividade(){
+  if(!user) return;
+  if(abaAtiva==='planilha') renderPlanilha();
+  else if(abaAtiva==='diario') renderDiario();
+  else renderCaixa();
+}
+
+// ══ PLANILHA ═════════════════════════════════════════════════════
+function calcTotais(){
+  const c=CULTURAS[culturaSel]; const area=getArea();
+  const grupos={};
+  c.custos.forEach((item,i)=>{ grupos[item.g]=(grupos[item.g]||0)+(getVh(culturaSel,i)*area); });
+  const custoTotalHa=c.custos.reduce((s,_,i)=>s+getVh(culturaSel,i),0);
+  const custoTotal=custoTotalHa*area;
+  const prodEl=document.getElementById('prod-input');
+  const precoEl=document.getElementById('preco-input');
+  const produtividade=prodEl?parseFloat(prodEl.value)||c.prod_ref:c.prod_ref;
+  const precoVenda=precoEl?parseFloat(precoEl.value)||c.p_mercado:c.p_mercado;
+  const receita=produtividade*precoVenda*area;
+  const lucro=receita-custoTotal;
+  const margem=receita>0?(lucro/receita*100):0;
+  const custoUnit=produtividade>0?(custoTotal/(produtividade*area)):0;
+  const pontEq=precoVenda>0?(custoTotal/(precoVenda*area)):0;
+  const ematerRef=c.custos.reduce((s,i)=>s+i.vh,0);
+  return {grupos,custoTotalHa,custoTotal,produtividade,precoVenda,receita,lucro,margem,custoUnit,pontEq,ematerRef,area};
+}
+
+function renderPlanilha(){
+  const c=CULTURAS[culturaSel];
+  const area=getArea();
+  const t=calcTotais();
+  const difEm=t.custoTotalHa-t.ematerRef;
+  const tagDif=difEm!==0?`<span class="tag" style="background:${difEm>0?'#FDEDEC':'#D5F5E3'};color:${difEm>0?'#C0392B':'#1E8449'}">${difEm>0?'+':''}${fmt(difEm)}/ha</span>`:'';
+
+  // grupos únicos para a pizza
+  const gruposArr=Object.entries(t.grupos);
+  const pizzaColors=['#1B3A5C','#27AE60','#E67E22','#C0392B','#8E44AD','#2E6DA4'];
+
+  const html=`
+  <!-- Badge EMATER -->
+  <div class="emater-badge">
+    <span class="emater-badge-text">📋 ${c.fonte} · ${c.nome} (${c.subtitulo})<br>
+    Ref. EMATER: <strong>${fmt(t.ematerRef)}/ha</strong> ${tagDif}</span>
+    <div class="emater-badge-right">
+      <button class="btn-restore" onclick="restoreEmater()">↩ Restaurar EMATER</button>
+    </div>
+  </div>
+
+  <!-- Inputs produção -->
+  <div class="card">
+    <div class="card-title">⚙️ Dados da Produção</div>
+    <div class="form-grid">
+      <div>
+        <label class="form-label">Produtividade real (${c.unidade}/ha)</label>
+        <input class="form-input" id="prod-input" type="number" placeholder="Ref. EMATER: ${c.prod_ref}" oninput="updateKPIs()">
+      </div>
+      <div>
+        <label class="form-label">Preço de venda (R$/${c.unidade})</label>
+        <input class="form-input" id="preco-input" type="number" placeholder="Mercado: R$ ${c.p_mercado}" oninput="updateKPIs()">
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--silver)">
+      Ciclo: <strong>${c.ciclo}</strong> · Produtividade ref.: <strong>${c.prod_ref} ${c.unidade}/ha</strong> · Custo/un. EMATER: <strong>${fmt(c.custo_unit_ref)}</strong>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpi-grid">
+    ${renderKPIs(t)}
+  </div>
+
+  <!-- Planilha -->
+  <div class="card" style="padding:0">
+    <div style="padding:13px 15px;border-bottom:1px solid #EEE;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="margin:0">${c.emoji} Planilha de Custos · ${area} ha</div>
+      <span class="hint">💡 Toque no <span style="background:var(--mid);color:#fff;border-radius:50%;padding:0 5px;font-size:10px;font-weight:800">?</span> para saber mais</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Grupo</th>
+            <th>Descrição</th>
+            <th>Un.</th>
+            <th class="right">Qtd</th>
+            <th class="right">Vr. Unit.</th>
+            <th class="right" style="background:#2d5f7a">EMATER R$/ha</th>
+            <th class="right" style="background:var(--mid)">Seu custo R$/ha</th>
+            <th class="right" style="background:#154360">Total (${area}ha)</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-custos">
+          ${renderLinhasCustos(c,area)}
+        </tbody>
+      </table>
+    </div>
+    ${c.obs.length?`<div class="obs-list"><div class="obs-title">📌 Observações EMATER:</div>${c.obs.map(o=>`<div class="obs-item">· ${o}</div>`).join('')}</div>`:''}
+    <div class="table-footer">Fonte: ${c.fonte} · Valores em R$/ha. Borda laranja = valor editado. Botão ↩ restaura dados originais.</div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-title">🥧 Composição dos Custos</div>
+      <div class="chart-wrap"><canvas id="chartPie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Resultado por Canal</div>
+      <div class="chart-wrap"><canvas id="chartBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Canais -->
+  <div class="card">
+    <div class="card-title">💰 Comparativo de Canais de Venda</div>
+    <div id="canais-wrap"></div>
+  </div>
+  `;
+
+  document.getElementById('main-content').innerHTML=html;
+
+  // Tooltips mobile (toque)
+  document.querySelectorAll('.tooltip-btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const wrap=btn.closest('.tooltip-wrap');
+      const wasActive=wrap.classList.contains('active');
+      document.querySelectorAll('.tooltip-wrap').forEach(w=>w.classList.remove('active'));
+      if(!wasActive) wrap.classList.add('active');
+    });
+  });
+  document.addEventListener('click',()=>document.querySelectorAll('.tooltip-wrap').forEach(w=>w.classList.remove('active')));
+
+  renderCharts(t,gruposArr,pizzaColors);
+  renderCanais(t,c,area);
+}
+
+function renderKPIs(t){
+  return[
+    {l:'Custo Total',v:fmt(t.custoTotal),s:`${fmt(t.custoTotalHa)}/ha`,c:'var(--red)',bg:'var(--lRed)'},
+    {l:'Receita Bruta',v:fmt(t.receita),s:`${fmtN(t.produtividade)} × ${fmt(t.precoVenda)}`,c:'var(--mid)',bg:'var(--lBlue)'},
+    {l:'Lucro / Margem',v:fmt(t.lucro),s:`${t.margem.toFixed(1)}%`,c:t.lucro>=0?'var(--green)':'var(--red)',bg:t.lucro>=0?'var(--lGreen)':'var(--lRed)'},
+    {l:'Custo Unitário',v:fmt(t.custoUnit),s:`por ${CULTURAS[culturaSel].unidade}`,c:'var(--orange)',bg:'var(--lOrange)'},
+    {l:'Ponto Equilíbrio',v:`${fmtN(t.pontEq)} ${CULTURAS[culturaSel].unidade}/ha`,s:'mín. p/ cobrir custos',c:'var(--gray)',bg:'#F4F6F8'},
+  ].map(k=>`<div class="kpi" style="background:${k.bg}">
+    <div class="kpi-label">${k.l}</div>
+    <div class="kpi-value" style="color:${k.c}">${k.v}</div>
+    <div class="kpi-sub">${k.s}</div>
+  </div>`).join('');
+}
+
+function updateKPIs(){
+  const t=calcTotais();
+  const kpiEl=document.getElementById('kpi-grid');
+  if(kpiEl) kpiEl.innerHTML=renderKPIs(t);
+  renderCanais(t,CULTURAS[culturaSel],getArea());
+}
+
+function renderLinhasCustos(c,area){
+  let html=''; let lastG='';
+  const subtotais={};
+  c.custos.forEach((item,i)=>{ subtotais[item.g]=(subtotais[item.g]||0)+(getVh(culturaSel,i)*area); });
+  const grupos=[...new Set(c.custos.map(i=>i.g))];
+
+  grupos.forEach(g=>{
+    const items=c.custos.map((item,i)=>({...item,i})).filter(item=>item.g===g);
+    items.forEach(({item,un,qtd,vu,vh,i})=>{
+      const vhP=getVh(culturaSel,i);
+      const changed=Math.abs(vhP-vh)>0.01;
+      const desc=DESC[item]||'';
+      const tooltip=desc?`<div class="tooltip-wrap"><button class="tooltip-btn" type="button">?</button><div class="tooltip-box">${desc}</div></div>`:'';
+      html+=`<tr>
+        <td style="font-weight:${lastG!==g?700:400};font-size:11px;white-space:nowrap">${lastG!==g?(lastG=g,''):''}</td>
+        <td>${item}${tooltip}</td>
+        <td style="white-space:nowrap;font-size:10px;color:var(--silver)">${un}</td>
+        <td class="right" style="color:var(--silver)">${qtd}</td>
+        <td class="right td-emater" style="font-size:11px">${fmt(vu)}</td>
+        <td class="right td-emater">${fmt(vh)}</td>
+        <td class="right td-edit">
+          <input class="edit-input ${changed?'changed':''}" type="number" value="${vhP}"
+            onchange="editVh(${i},this.value,this)" oninput="editVh(${i},this.value,this)">
+        </td>
+        <td class="right td-total">${fmt(vhP*area)}</td>
+      </tr>`;
+      if(lastG!==g) lastG=g; // fix: atualizar depois de render
+    });
+    // subtotal
+    const vSub=subtotais[g];
+    html+=`<tr class="tr-subtotal">
+      <td colspan="6">Subtotal — ${g}</td>
+      <td class="right">${fmt(vSub/area)}</td>
+      <td class="right">${fmt(vSub)}</td>
+    </tr>`;
+  });
+
+  const custoTotalHa=c.custos.reduce((s,_,i)=>s+getVh(culturaSel,i),0);
+  html+=`<tr class="tr-total">
+    <td colspan="6">CUSTO TOTAL — ${area} ha</td>
+    <td class="right">${fmt(custoTotalHa)}<br><span style="font-size:10px;opacity:.7">/ha</span></td>
+    <td class="right big">${fmt(custoTotalHa*area)}</td>
+  </tr>`;
+
+  // fix grupo label na primeira col
+  return fixGrupos(html,c,area);
+}
+
+function fixGrupos(html,c,area){
+  // Rerender com grupos corretos
+  let out=''; let lastG=''; const area_=area;
+  const subtotais={};
+  c.custos.forEach((item,i)=>{ subtotais[item.g]=(subtotais[item.g]||0)+(getVh(culturaSel,i)*area_); });
+  const grupos=[...new Set(c.custos.map(i=>i.g))];
+
+  grupos.forEach(g=>{
+    const items=c.custos.map((item,i)=>({...item,i})).filter(item=>item.g===g);
+    items.forEach(({item,un,qtd,vu,vh,i},ri)=>{
+      const vhP=getVh(culturaSel,i);
+      const changed=Math.abs(vhP-vh)>0.01;
+      const desc=DESC[item]||'';
+      const tooltip=desc?`<div class="tooltip-wrap"><button class="tooltip-btn" type="button">?</button><div class="tooltip-box">${desc}</div></div>`:'';
+      out+=`<tr>
+        <td style="font-weight:${ri===0?700:400};font-size:11px;white-space:nowrap;color:var(--dark)">${ri===0?g:''}</td>
+        <td>${item}${tooltip}</td>
+        <td style="white-space:nowrap;font-size:10px;color:var(--silver)">${un}</td>
+        <td class="right" style="color:var(--silver)">${qtd}</td>
+        <td class="right td-emater" style="font-size:11px">${fmt(vu)}</td>
+        <td class="right td-emater">${fmt(vh)}</td>
+        <td class="right td-edit">
+          <input class="edit-input${changed?' changed':''}" type="number" value="${vhP}"
+            onchange="editVh(${i},this.value,this)" oninput="editVh(${i},this.value,this)">
+        </td>
+        <td class="right td-total">${fmt(vhP*area_)}</td>
+      </tr>`;
+    });
+    const vSub=subtotais[g];
+    out+=`<tr class="tr-subtotal">
+      <td colspan="6">Subtotal — ${g}</td>
+      <td class="right">${fmt(vSub/area_)}</td>
+      <td class="right">${fmt(vSub)}</td>
+    </tr>`;
+  });
+  const custoTotalHa=c.custos.reduce((s,_,i)=>s+getVh(culturaSel,i),0);
+  out+=`<tr class="tr-total">
+    <td colspan="6">CUSTO TOTAL — ${area_} ha</td>
+    <td class="right">${fmt(custoTotalHa)}<br><span style="font-size:10px;opacity:.7">/ha</span></td>
+    <td class="right big">${fmt(custoTotalHa*area_)}</td>
+  </tr>`;
+  return out;
+}
+
+function editVh(idx,val,input){
+  const ov=getOv(culturaSel);
+  ov[idx]=parseFloat(val)||0;
+  setOv(culturaSel,ov);
+  const changed=Math.abs(ov[idx]-CULTURAS[culturaSel].custos[idx].vh)>0.01;
+  input.classList.toggle('changed',changed);
+  updateKPIs();
+}
+
+function restoreEmater(){
+  setOv(culturaSel,{});
+  renderPlanilha();
+}
+
+function renderCharts(t,gruposArr,pizzaColors){
+  if(chartPie){ chartPie.destroy(); chartPie=null; }
+  if(chartBar){ chartBar.destroy(); chartBar=null; }
+  const c=CULTURAS[culturaSel]; const area=t.area;
+
+  const pieCtx=document.getElementById('chartPie');
+  if(pieCtx){
+    chartPie=new Chart(pieCtx,{type:'pie',data:{
+      labels:gruposArr.map(([k])=>k),
+      datasets:[{data:gruposArr.map(([,v])=>Math.round(v)),backgroundColor:pizzaColors}]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{
+      legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt(ctx.raw)}`}}
+    }}});
+  }
+
+  const prod=t.produtividade;
+  const barCtx=document.getElementById('chartBar');
+  if(barCtx){
+    chartBar=new Chart(barCtx,{type:'bar',data:{
+      labels:['Mercado','PAA','PNAE'],
+      datasets:[
+        {label:'Custo',data:[t.custoTotal,t.custoTotal,t.custoTotal],backgroundColor:'#C0392B',borderRadius:4},
+        {label:'Receita',data:[prod*c.p_mercado*area,prod*c.p_paa*area,prod*c.p_pnae*area],backgroundColor:'#2E6DA4',borderRadius:4},
+        {label:'Lucro',data:[prod*c.p_mercado*area-t.custoTotal,prod*c.p_paa*area-t.custoTotal,prod*c.p_pnae*area-t.custoTotal],backgroundColor:'#27AE60',borderRadius:4},
+      ]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{
+      legend:{labels:{font:{size:10},boxWidth:10}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmt(ctx.raw)}`}}
+    },scales:{
+      x:{ticks:{font:{size:10}}},
+      y:{ticks:{font:{size:9},callback:v=>`R$${(v/1000).toFixed(0)}k`}}
+    }}});
+  }
+}
+
+function renderCanais(t,c,area){
+  const prod=t.produtividade;
+  const canais=[
+    {canal:'Mercado Comum',preco:c.p_mercado,cor:'#2E6DA4',icon:'🛒',desc:'Atravessador, CEASA, feira. Preço sujeito à sazonalidade.'},
+    {canal:'PAA',preco:c.p_paa,cor:'#1E8449',icon:'🏛️',desc:'Compra governamental direta. Preço fixo e garantido. Exige DAP/CAF e vínculo em cooperativa.'},
+    {canal:'PNAE',preco:c.p_pnae,cor:'#7D3C98',icon:'🏫',desc:'Alimentação escolar. 30% obrigatório p/ agricultura familiar (Lei 11.947/2009).'},
+  ];
+  const wrap=document.getElementById('canais-wrap');
+  if(!wrap) return;
+  wrap.innerHTML=canais.map(ch=>{
+    const rec=prod*ch.preco*area;
+    const luc=rec-t.custoTotal;
+    return`<div class="canal-card" style="border-left:5px solid ${ch.cor};background:#F8F9FA">
+      <div>
+        <div class="canal-title" style="color:${ch.cor}">${ch.icon} ${ch.canal}</div>
+        <div class="canal-desc">${ch.desc}</div>
+      </div>
+      <div class="canal-kpis">
+        <div class="canal-kpi" style="background:#F0F4F8">
+          <div class="canal-kpi-label" style="color:var(--silver)">R$/${c.unidade}</div>
+          <div class="canal-kpi-value" style="color:var(--dark)">${fmt(ch.preco)}</div>
+        </div>
+        <div class="canal-kpi" style="background:#F0F4F8">
+          <div class="canal-kpi-label" style="color:var(--silver)">Receita</div>
+          <div class="canal-kpi-value" style="color:var(--dark)">${fmt(rec)}</div>
+        </div>
+        <div class="canal-kpi" style="background:${ch.cor}">
+          <div class="canal-kpi-label" style="color:rgba(255,255,255,.75)">Lucro</div>
+          <div class="canal-kpi-value" style="color:#fff">${fmt(luc)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══ DIÁRIO ═══════════════════════════════════════════════════════
+function renderDiario(){
+  const c=CULTURAS[culturaSel];
+  const entries=getDiary();
+  const html=`
+  <div class="card">
+    <div class="card-title">📝 Novo Registro de Campo</div>
+    <div class="form-grid">
+      <div>
+        <label class="form-label">Data</label>
+        <input class="form-input" id="d-data" type="date" value="${today()}">
+      </div>
+      <div>
+        <label class="form-label">Operação</label>
+        <select class="form-input" id="d-op">
+          ${c.operacoes.map(op=>`<option>${op}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Área (ha)</label>
+        <input class="form-input" id="d-area" type="number" placeholder="Ex: 0.5" step="0.1" inputmode="decimal">
+      </div>
+      <div>
+        <label class="form-label">Observações</label>
+        <input class="form-input" id="d-obs" type="text" placeholder="Condições, ocorrências...">
+      </div>
+    </div>
+    <button class="btn-action" style="background:var(--green);margin-top:12px" onclick="addDiario()">✅ Registrar Operação</button>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Histórico (${entries.length} registros)</div>
+    <div class="entry-list">
+      ${entries.length===0?`<div class="empty">Nenhum registro ainda. Comece registrando uma operação acima.</div>`
+      :entries.slice().reverse().map(e=>`
+        <div class="entry-item" style="border-left:4px solid var(--green)">
+          <div class="entry-main">
+            <div class="entry-title">
+              ${e.op}
+              <span class="tag" style="background:var(--lBlue);color:var(--mid)">${CULTURAS[e.cultura]?.emoji} ${CULTURAS[e.cultura]?.nome}</span>
+              ${e.area?`<span class="tag" style="background:var(--lOrange);color:var(--orange)">${e.area} ha</span>`:''}
+            </div>
+            <div class="entry-sub">${br(e.data)}${e.obs?' · '+e.obs:''}</div>
+          </div>
+          <button class="btn-del" onclick="delDiario('${e.id}')">✕</button>
+        </div>`).join('')}
+    </div>
+  </div>`;
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function addDiario(){
+  const data=document.getElementById('d-data').value;
+  const op=document.getElementById('d-op').value;
+  if(!data||!op) return;
+  const area=document.getElementById('d-area').value;
+  const obs=document.getElementById('d-obs').value;
+  const entries=getDiary();
+  entries.push({id:uid(),cultura:culturaSel,data,op,area,obs,ts:Date.now()});
+  setDiary(entries);
+  renderDiario();
+}
+
+function delDiario(id){
+  setDiary(getDiary().filter(e=>e.id!==id));
+  renderDiario();
+}
+
+// ══ CAIXA ════════════════════════════════════════════════════════
+const CATS={
+  despesa:['Insumos','Mecanização','Mão de obra','Frete/Transporte','Energia/Água','Equipamentos','ATER','Outros'],
+  receita:['Venda direta','PAA','PNAE','CEASA/Mercado','Outro']
+};
+const PAGS=['Dinheiro','PIX','Transferência','Cheque','Cartão','A prazo'];
+let tipoAtivo='despesa';
+
+function renderCaixa(){
+  const lancs=getCaixa();
+  const totRec=lancs.filter(l=>l.tipo==='receita').reduce((s,l)=>s+l.valor,0);
+  const totDesp=lancs.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+l.valor,0);
+  const saldo=totRec-totDesp;
+
+  const html=`
+  <div class="saldo-grid">
+    <div class="kpi" style="background:var(--lGreen)">
+      <div class="kpi-label">Receitas</div>
+      <div class="kpi-value" style="color:var(--green)">${fmt(totRec)}</div>
+    </div>
+    <div class="kpi" style="background:var(--lRed)">
+      <div class="kpi-label">Despesas</div>
+      <div class="kpi-value" style="color:var(--red)">${fmt(totDesp)}</div>
+    </div>
+    <div class="kpi" style="background:${saldo>=0?'var(--lGreen)':'var(--lRed)'}">
+      <div class="kpi-label">Saldo</div>
+      <div class="kpi-value" style="color:${saldo>=0?'var(--green)':'var(--red)'}">${fmt(saldo)}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💰 Novo Lançamento</div>
+    <div class="tipo-btns">
+      <button class="tipo-btn desp${tipoAtivo==='despesa'?' active':''}" onclick="setTipo('despesa',this)">📤 Despesa</button>
+      <button class="tipo-btn rec${tipoAtivo==='receita'?' active':''}" onclick="setTipo('receita',this)">📥 Receita</button>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label class="form-label">Data</label>
+        <input class="form-input" id="c-data" type="date" value="${today()}">
+      </div>
+      <div>
+        <label class="form-label">Categoria</label>
+        <select class="form-input" id="c-cat">
+          ${CATS[tipoAtivo].map(ct=>`<option>${ct}</option>`).join('')}
+        </select>
+      </div>
+      <div class="span2">
+        <label class="form-label">Descrição</label>
+        <input class="form-input" id="c-desc" type="text" placeholder="Ex: Compra de adubo, Venda de mandioca para PAA...">
+      </div>
+      <div>
+        <label class="form-label">Valor (R$)</label>
+        <input class="form-input" id="c-valor" type="number" placeholder="0,00" step="0.01" min="0" inputmode="decimal">
+      </div>
+      <div>
+        <label class="form-label">Forma de Pagamento</label>
+        <select class="form-input" id="c-pag">
+          ${PAGS.map(p=>`<option>${p}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <button class="btn-action" style="background:${tipoAtivo==='receita'?'var(--green)':'var(--red)'};margin-top:12px"
+      onclick="addCaixa()">${tipoAtivo==='receita'?'📥 Lançar Receita':'📤 Lançar Despesa'}</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧾 Extrato (${lancs.length} lançamentos)</div>
+    <div class="entry-list">
+      ${lancs.length===0?`<div class="empty">Nenhum lançamento registrado.</div>`
+      :lancs.slice().reverse().map(l=>{
+        const isR=l.tipo==='receita';
+        return`<div class="entry-item" style="border-left:4px solid ${isR?'var(--green)':'var(--red)'}">
+          <div class="entry-main">
+            <div class="entry-title">
+              ${l.desc}
+              <span class="tag" style="background:${isR?'var(--lGreen)':'var(--lRed)'};color:${isR?'var(--green)':'var(--red)'}">${l.cat}</span>
+              <span class="tag" style="background:#F0F4F8;color:var(--gray)">${l.pag}</span>
+            </div>
+            <div class="entry-sub">${br(l.data)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="entry-value" style="color:${isR?'var(--green)':'var(--red)'}">${isR?'+':'-'}${fmt(l.valor)}</span>
+            <button class="btn-del" onclick="delCaixa('${l.id}')">✕</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function setTipo(tipo,btn){
+  tipoAtivo=tipo;
+  renderCaixa();
+}
+
+function addCaixa(){
+  const data=document.getElementById('c-data').value;
+  const desc=document.getElementById('c-desc').value.trim();
+  const valor=parseFloat(document.getElementById('c-valor').value);
+  if(!desc||!valor||valor<=0) return;
+  const cat=document.getElementById('c-cat').value;
+  const pag=document.getElementById('c-pag').value;
+  const lancs=getCaixa();
+  lancs.push({id:uid(),tipo:tipoAtivo,data,cat,desc,valor,pag,ts:Date.now()});
+  setCaixa(lancs);
+  renderCaixa();
+}
+
+function delCaixa(id){
+  setCaixa(getCaixa().filter(l=>l.id!==id));
+  renderCaixa();
+}
+
+// ══ INIT ══════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  const s=LS.get('agro_session');
+  if(s && s.id){
+    const users=LS.get('agro_users')||{};
+    if(users[s.id] && users[s.id].pin===s.pin){
+      loginSuccess(s);
+    }
+  }
+});
+</script>
+</body>
+</html>
