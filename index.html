@@ -1,0 +1,973 @@
+import { useState, useEffect, useMemo, useRef } from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+         PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+
+const C = {
+  dark:"#1B3A5C", mid:"#2E6DA4", green:"#1E8449", orange:"#E67E22",
+  red:"#C0392B", gray:"#555", white:"#FFFFFF", silver:"#999",
+  lBlue:"#EBF5FB", lGreen:"#D5F5E3", lOrange:"#FEF9E7", lRed:"#FDEDEC",
+  emater:"#2E7D32"
+};
+const PIE_COLORS = ["#1B3A5C","#27AE60","#E67E22","#C0392B","#8E44AD","#2E6DA4"];
+
+// ─── DESCRIÇÕES DOS ITENS (linguagem simples para o produtor) ──────
+const DESC = {
+  // ── INSUMOS MANDIOCA ──────────────────────────────────────────────
+  "Adubo mineral 20-00-20":
+    "Fertilizante que fornece nitrogênio (N) e potássio (K) para a planta. Usado na adubação de cobertura — aplicado ao lado da mandioca depois do plantio para alimentar a planta durante o crescimento.",
+  "Adubo mineral 4-30-16":
+    "Fertilizante rico em fósforo, usado no momento do plantio. O fósforo estimula o enraizamento da mandioca e o desenvolvimento inicial das ramas.",
+  "Adubo mineral Sulfato de zinco":
+    "Micronutriente que corrige a falta de zinco no solo. O zinco melhora o vigor da planta, o tamanho das raízes e a produtividade final.",
+  "Agrotóxico Metribuzin 480 G/L":
+    "Herbicida pré-emergente — aplicado antes das ervas daninhas nascerem. Evita que o mato concorra com a mandioca nos primeiros meses, reduzindo a necessidade de capinas.",
+  "Agrotóxico Sulfluramida":
+    "Formicida: produto para eliminar formigas cortadeiras (saúva e quenquém). As formigas são uma das principais pragas da mandioca — podem destruir a lavoura rapidamente se não forem controladas.",
+  "Mudas de Mandioca (Manivas)":
+    "Pedaços de rama (galho) da mandioca que servem como semente. Cada pedaço de 20 a 30 cm é enterrado no solo e vai brotar, dando origem a uma nova planta. A qualidade da maniva define muito o resultado da safra.",
+
+  // ── SERVIÇOS MANDIOCA ─────────────────────────────────────────────
+  "Adubação (Manual de cobertura)":
+    "Aplicação manual de adubo ao lado das plantas após o plantio. É chamada 'de cobertura' porque é feita com a planta já no campo, cobrindo o adubo levemente com terra para não perder nutrientes.",
+  "Adubos (Distribuição manual)":
+    "Espalhamento manual do adubo no sulco de plantio antes de cobrir com terra. Garante que cada planta receba a quantidade certa de nutrientes desde o início.",
+  "Agrotóxico (Aplic. de formicida)":
+    "Aplicação do produto contra formigas nos formigueiros próximos à lavoura. É feita separadamente das outras pulverizações por exigir tratamento direto nos ninhos.",
+  "Agrotóxico (Aplicação)":
+    "Pulverização de defensivos agrícolas (herbicida, fungicida ou inseticida) com bomba costal ou tratorizado. Controla pragas e doenças que atacam a cultura.",
+  "Capina (Manual)":
+    "Limpeza da área entre as plantas para eliminar o mato (ervas daninhas). O mato compete com a mandioca por água, luz e nutrientes — se não for controlado, reduz muito a produção.",
+  "Colheita/Classificação/Acondic.":
+    "Arrancar as raízes do solo (colheita), separar por tamanho e qualidade (classificação) e colocar nas caixas de 20 kg para venda (acondicionamento). É a operação mais trabalhosa — exige muito esforço físico.",
+  "Manivas (Seleção e Corte)":
+    "Escolha dos ramos mais saudáveis e corte nos tamanhos certos para usar como semente. Manivas bem selecionadas garantem maior taxa de brotação e lavoura mais uniforme.",
+  "Plantio e replantio":
+    "Colocação das manivas no sulco e cobertura com terra (plantio). O replantio é feito 15 a 30 dias depois para substituir as que não brotaram, garantindo a população ideal de plantas por hectare.",
+  "Preparo do solo (Aração)":
+    "Revolvimento profundo do solo com arado acoplado ao trator. Solta a terra compactada, melhora a entrada de ar e água, e facilita o crescimento das raízes da mandioca.",
+  "Preparo do solo (Gradagem)":
+    "Operação feita após a aração para destorroar e nivelar o solo. Deixa a terra solta e pronta para o plantio, eliminando torrões e restos de plantas anteriores.",
+
+  // ── INSUMOS TOMATE ────────────────────────────────────────────────
+  "Adubo mineral 4-30-10":
+    "Fertilizante rico em fósforo, usado no plantio do tomate. O fósforo estimula o enraizamento das mudas transplantadas e o florescimento precoce.",
+  "Adubo mineral Ácido bórico":
+    "Micronutriente que melhora a frutificação e evita a 'podridão apical' (fundo preto do tomate). Sem boro suficiente, os frutos nascem com uma mancha escura na ponta e não podem ser vendidos.",
+  "Adubo mineral Ácido Fosfórico":
+    "Fertilizante fosfatado líquido aplicado via gotejamento (fertirrigação). Leva o fósforo diretamente para a raiz da planta de forma eficiente e sem desperdício.",
+  "Adubo mineral Cloreto de potássio branco":
+    "Fonte de potássio para melhorar a qualidade, o sabor e a firmeza dos frutos. O tomate é muito exigente em potássio — sem ele os frutos ficam moles e com cor ruim.",
+  "Adubo mineral Nitrato de cálcio":
+    "Fornece cálcio e nitrogênio via fertirrigação. O cálcio é o nutriente mais importante para evitar a podridão apical e deixar os frutos firmes. Aplicado com frequência durante todo o ciclo.",
+  "Adubo mineral Sulfato de magnésio":
+    "Fornece magnésio, essencial para a fotossíntese (produção de energia da planta). A falta de magnésio causa amarelamento das folhas mais velhas e reduz a produção.",
+  "Adubo mineral Sulfato de zinco":
+    "Micronutriente que melhora o pegamento dos frutos e a qualidade geral da produção de tomate.",
+  "Adubo mineral Termofosfato":
+    "Fertilizante fosfatado de liberação lenta, ideal para solos ácidos. Corrige a acidez e disponibiliza fósforo gradualmente durante todo o ciclo da cultura.",
+  "Adubo orgânico (Cama de frango)":
+    "Esterco de galinheiro (cama de frango) usado como adubo orgânico. Rico em nutrientes e matéria orgânica — melhora a estrutura do solo, aumenta a retenção de água e ativa os microrganismos benéficos.",
+  "Agrotóxico Abamectina 18 g/l":
+    "Inseticida e acaricida que combate ácaros e o minador-das-folhas (uma praga que abre galerias nas folhas). Muito usado no início do ciclo do tomate.",
+  "Agrotóxico Acibenzolar S-Metílico":
+    "Produto que 'vacina' a planta — ativa as defesas naturais do tomateiro contra doenças como murcha bacteriana e vírus. Não mata a doença diretamente, mas fortalece a planta para resistir.",
+  "Agrotóxico Ciantoniprole+Lambda-cialotrina":
+    "Inseticida de dupla ação para controle de lagartas, pulgões, mosca-branca e percevejos no tomate. Aplicado quando a pressão de pragas é alta.",
+  "Agrotóxico Clorfenapir 240 g/l":
+    "Inseticida e acaricida para controle de pragas resistentes a outros produtos. Usado em rotação com outros inseticidas para evitar resistência.",
+  "Agrotóxico Difenoconazol 250 g/l":
+    "Fungicida sistêmico (entra na planta) para controle de pinta-preta, requeima e outras doenças fúngicas graves do tomate. Aplicado preventiva e curativamente.",
+  "Agrotóxico Espinosade 480 g/L":
+    "Inseticida de origem biológica (derivado de bactéria do solo) para controle de lagartas e trips. É eficaz e menos agressivo ao meio ambiente e aos inimigos naturais das pragas.",
+  "Agrotóxico Fenpropatrina 300 g/kg":
+    "Acaricida e inseticida piretroide para controle de ácaros no tomateiro. Usado quando a infestação de ácaros compromete as folhas.",
+  "Agrotóxico Isocicloseram 200 g/l":
+    "Inseticida moderno e de alta eficiência para controle de mosca-branca, que é um dos principais vetores de vírus no tomate. Aplicado quando outros produtos já não funcionam.",
+  "Agrotóxico Mancozebe 800 g/kg":
+    "Fungicida de contato (fica na superfície da planta) para prevenção de requeima e mancha-de-septória. É aplicado regularmente durante todo o ciclo como proteção.",
+  "Agrotóxico Oxicloreto de cobre 840 g/kg":
+    "Fungicida e bactericida à base de cobre. Controla doenças fúngicas e bacterianas, como o cancro bacteriano. É um produto tradicional e de baixo custo.",
+  "Energia elétrica p/ irrigação":
+    "Custo com a conta de luz para bombear água no sistema de irrigação. No tomate irrigado por gotejamento, o consumo de energia é alto pois a bomba funciona diariamente.",
+  "Mulching (bobina 1,6m × 1000m)":
+    "Filme de plástico preto colocado sobre os canteiros antes do transplantio. Impede o crescimento de ervas daninhas, mantém a umidade do solo, evita doenças do solo e melhora a temperatura das raízes.",
+  "Sementes de Tomate híbrido":
+    "Sementes de variedade híbrida F1 — desenvolvidas por melhoramento genético para alta produtividade, resistência a doenças e frutos uniformes. São caras, mas garantem melhor resultado.",
+
+  // ── SERVIÇOS TOMATE ───────────────────────────────────────────────
+  "Adubos (Distribuição manual)":
+    "Espalhamento manual dos adubos sólidos no canteiro antes de incorporá-los ao solo.",
+  "Adubos (Incorporação mecânica c/ trator)":
+    "Mistura dos adubos ao solo usando trator com enxada rotativa ou grade. Garante distribuição uniforme dos nutrientes em toda a área de cultivo.",
+  "Agrotóxico (Aplicação)":
+    "Pulverização de fungicidas, inseticidas e acaricidas no tomateiro. No tomate, essa operação é frequente — pode ser necessária 2 a 3 vezes por semana em época de alta pressão de doenças.",
+  "Colheita/Classificação/Acondicionamento":
+    "Colher os frutos maduros, classificar por tamanho (graúdo, médio, miúdo) e estado (extra, primeira, segunda) e embalar nas caixas de 20 kg. O tomate exige muita mão de obra nessa fase.",
+  "Construção (Suporte)":
+    "Instalação das estacas de madeira e fios de arame para sustentar as plantas verticalmente. O suporte é essencial no tomate estaqueado — sem ele, as plantas tombam e os frutos apodrecem no chão.",
+  "Desbrota e amarrio":
+    "Desbrota: retirada dos brotos laterais que nascem entre o caule e os galhos (para concentrar a energia da planta nos frutos). Amarrio: amarrar os galhos ao arame de sustentação. É a operação que mais exige mão de obra no tomate — feita semanalmente.",
+  "Fertirrigação":
+    "Aplicação de fertilizantes solúveis (líquidos) misturados à água de irrigação pelo sistema de gotejamento. Leva os nutrientes diretamente para as raízes com alta eficiência e sem desperdício.",
+  "Irrigação (Gotejamento)":
+    "Operação diária do sistema de gotejamento — verificar pressão, filtros, emissores entupidos e programar horários. O gotejamento entrega água e nutrientes diretamente na raiz, economizando água e reduzindo doenças foliares.",
+  "Irrigação (Montagem do sistema)":
+    "Instalação das mangueiras de gotejamento, conexões, filtros e emissores antes do plantio. É um investimento feito uma vez por ciclo.",
+  "Mudas (Formação — bandejas 128 células)":
+    "Produção das mudas em bandejas com substrato especializado em ambiente protegido. As mudas ficam de 25 a 30 dias na bandeja antes de serem transplantadas para o campo.",
+  "Mulching (Aplicação de cobertura plástica)":
+    "Colocação do filme plástico sobre os canteiros, com furos para o transplantio. É feita antes das mudas irem para o campo.",
+  "Preparo do solo (Levant. canteiro c/trator)":
+    "Formação de canteiros elevados com trator e encanteirador. O canteiro elevado melhora a drenagem, evita encharcamento e facilita o manejo das plantas e a colheita.",
+  "Transplantio":
+    "Transferência das mudas da bandeja para o canteiro definitivo no campo. É uma operação delicada — as mudas devem ser colocadas na posição correta e irrigadas imediatamente.",
+
+  // ── INSUMOS MILHO VERDE ───────────────────────────────────────────
+  "Adubo mineral 20-00-20":
+    "Fertilizante de cobertura com nitrogênio e potássio. O nitrogênio é o principal nutriente para o milho — estimula o crescimento das folhas e o enchimento da espiga.",
+  "Adubo mineral 4-30-16":
+    "Fertilizante de plantio rico em fósforo. O fósforo estimula o desenvolvimento inicial das raízes do milho e o pegamento das sementes.",
+  "Adubo mineral Sulfato de amônio":
+    "Fonte de nitrogênio e enxofre para adubação de cobertura. O enxofre melhora a proteína e a qualidade dos grãos do milho verde.",
+  "Agrotóxico Atrazina 370g/l + S-Metolachlor 290g/l":
+    "Herbicida pós-emergente para controle de ervas daninhas na lavoura de milho. Controla tanto gramíneas quanto plantas de folha larga que competem com o milho.",
+  "Agrotóxico Lambda-cialotrina 250 g/l":
+    "Inseticida piretroide para controle de pragas iniciais na lavoura de milho, como pulgão-da-raiz e outros insetos sugadores.",
+  "Agrotóxico Triflumurom 480 g/l":
+    "Inseticida específico para lagarta-do-cartucho (Spodoptera frugiperda), a principal praga do milho no Brasil. A lagarta entra no cartucho da planta e come as folhas novas.",
+  "Sementes de Milho Verde":
+    "Sementes de variedade específica para milho verde — colhido antes da maturação completa, quando os grãos ainda estão macios. Variedades como Superdoce têm sabor mais adocicado e maior valor comercial.",
+
+  // ── SERVIÇOS MILHO VERDE ──────────────────────────────────────────
+  "Adubação (Manual de cobertura)":
+    "Aplicação manual de adubo nitrogenado ao lado das plantas de milho quando elas têm de 4 a 6 folhas. É a etapa mais importante para garantir boa produção de espigas.",
+  "Colheita/Classificação/Acondicionamento":
+    "Colheita das espigas no ponto verde (grão leitoso), retirada da palha mais grossa, classificação por tamanho e embalagem para venda. O ponto de colheita é crítico — espiga passada do ponto perde valor.",
+  "Irrigação (Aspersão)":
+    "Operação do sistema de irrigação por aspersão — simula a chuva sobre a lavoura. O milho verde irrigado tem produtividade muito superior ao de sequeiro.",
+  "Plantio (Mecânico)":
+    "Plantio das sementes com plantadeira tracionada por trator. Garante espaçamento uniforme, profundidade correta e velocidade de plantio muito superior ao manual.",
+
+  // ── INSUMOS ALFACE ────────────────────────────────────────────────
+  "Adubo mineral 4-30-16":
+    "Fertilizante de plantio rico em fósforo para estimular o enraizamento das mudas de alface após o transplantio.",
+  "Adubo mineral Sulfato de zinco":
+    "Micronutriente que melhora o desenvolvimento foliar e a qualidade visual da alface. Folhas com boa coloração verde têm mais valor no mercado.",
+  "Adubo mineral Uréia":
+    "Fertilizante nitrogenado de cobertura. O nitrogênio é fundamental para a alface — é uma cultura muito exigente nesse nutriente para crescimento rápido das folhas.",
+  "Adubo orgânico (Cama de frango)":
+    "Esterco de galinheiro usado como adubo orgânico antes do plantio. Melhora muito a estrutura do solo, aumenta a retenção de água e fornece nutrientes de forma gradual — essencial para hortaliças de folha.",
+  "Agrotóxico Azadiractina 12g/l":
+    "Inseticida natural derivado da planta nim (Azadirachta indica). Controla pulgões, trips e pequenas lagartas com baixo impacto ambiental. Boa opção para produção orgânica ou integrada.",
+  "Agrotóxico Imidacloprido 700 g/kg":
+    "Inseticida sistêmico (entra na planta) para controle de pulgões e mosca-minadora na alface. Aplicado via irrigação ou no solo, age de dentro para fora protegendo a cultura.",
+  "Agrotóxico Iprodiona 500 g/l":
+    "Fungicida para controle de podridão-de-esclerotínia (mofo-branco), que apodrece o caule da alface rente ao solo. Doença muito comum em períodos úmidos e frios.",
+
+  // ── SERVIÇOS ALFACE ───────────────────────────────────────────────
+  "Capina (Manual)":
+    "Eliminação manual de ervas daninhas nos canteiros. Na alface, a capina é intensa pois a cultura é de ciclo curto (45 dias) e o mato cresce junto. É a operação que mais emprega mão de obra.",
+  "Colheita/Classificação/Acondicionamento":
+    "Cortar a cabeça da alface rente ao solo, lavar, retirar as folhas externas danificadas e embalar em caixas de 5 kg. O produto vai direto para feiras e supermercados.",
+  "Irrigação (Aspersão)":
+    "Regagem diária por aspersão — a alface não tolera falta de água. O sistema deve funcionar todos os dias, pois a planta tem raízes rasas e resseca rapidamente.",
+  "Irrigação (Montagem do sistema)":
+    "Instalação das tubulações, aspersores e conexões do sistema de irrigação antes do plantio.",
+  "Mudas (Formação — bandejas 200 células)":
+    "Produção das mudas de alface em bandeja com substrato especial. A alface sempre é transplantada — nunca semeada diretamente no canteiro final. As mudas ficam de 15 a 20 dias na bandeja.",
+  "Preparo solo (Lev. cant. c/ rotoencanteirador)":
+    "Formação mecanizada de canteiros altos e bem estruturados com rotoencanteirador. O canteiro elevado garante boa drenagem e aeração para as raízes rasas da alface.",
+  "Transplantio":
+    "Transferência das mudas da bandeja para os canteiros no espaçamento de 25 cm × 25 cm. É uma operação manual e delicada — as mudas devem ser plantadas na profundidade certa para não tombarem.",
+};
+
+// ─── DADOS EMATER/DF 2025 ──────────────────────────────────────────
+const CULTURAS = {
+  mandioca:{
+    nome:"Mandioca de Mesa", emoji:"🌿", subtitulo:"Média Tecnologia",
+    ciclo:"12 meses", unidade:"cx/20kg",
+    prod_ref:1200, custo_unit_ref:10.68,
+    p_mercado:18.00, p_paa:20.00, p_pnae:22.00,
+    fonte:"EMATER/DF — Custo de Produção 2º Semestre 2025",
+    obs:["Apenas 1 capina prevista até 90 dias (herbicida pré-emergente aplicado)","Rendimento de colheita: 30 caixas por dia homem"],
+    operacoes:["Seleção e corte de manivas","Plantio e replantio","Distribuição de adubos","Adubação de cobertura","Aplicação de herbicida","Aplicação de formicida","Capina manual","Colheita/Classificação/Acondicionamento","Outra"],
+    custos:[
+      {g:"Insumos", item:"Adubo mineral 20-00-20",           un:"sc/50kg",qtd:4.000, vu:170.74,vh:682.97},
+      {g:"Insumos", item:"Adubo mineral 4-30-16",            un:"sc/50kg",qtd:6.000, vu:304.22,vh:1825.32},
+      {g:"Insumos", item:"Adubo mineral Sulfato de zinco",   un:"kg",     qtd:20.000,vu:8.19,  vh:163.79},
+      {g:"Insumos", item:"Agrotóxico Metribuzin 480 G/L",    un:"L",      qtd:1.000, vu:166.37,vh:166.37},
+      {g:"Insumos", item:"Agrotóxico Sulfluramida",          un:"kg",     qtd:2.000, vu:22.00, vh:44.00},
+      {g:"Insumos", item:"Mudas de Mandioca (Manivas)",      un:"m³",     qtd:5.000, vu:165.00,vh:825.00},
+      {g:"Serviços",item:"Adubação (Manual de cobertura)",   un:"d/h",    qtd:2.000, vu:110.00,vh:220.00},
+      {g:"Serviços",item:"Adubos (Distribuição manual)",     un:"d/h",    qtd:4.000, vu:110.00,vh:440.00},
+      {g:"Serviços",item:"Agrotóxico (Aplic. de formicida)", un:"d/h",    qtd:1.000, vu:110.00,vh:110.00},
+      {g:"Serviços",item:"Agrotóxico (Aplicação)",           un:"d/h",    qtd:2.000, vu:110.00,vh:220.00},
+      {g:"Serviços",item:"Capina (Manual)",                  un:"d/h",    qtd:15.000,vu:110.00,vh:1650.00},
+      {g:"Serviços",item:"Colheita/Classificação/Acondic.",  un:"d/h",    qtd:40.000,vu:110.00,vh:4400.00},
+      {g:"Serviços",item:"Manivas (Seleção e Corte)",        un:"d/h",    qtd:2.000, vu:110.00,vh:220.00},
+      {g:"Serviços",item:"Plantio e replantio",              un:"d/h",    qtd:5.000, vu:110.00,vh:550.00},
+      {g:"Serviços",item:"Preparo do solo (Aração)",         un:"h/m",    qtd:3.000, vu:260.00,vh:780.00},
+      {g:"Serviços",item:"Preparo do solo (Gradagem)",       un:"h/m",    qtd:2.000, vu:260.00,vh:520.00},
+    ]
+  },
+  tomate:{
+    nome:"Tomate", emoji:"🍅", subtitulo:"Campo — Gotejamento",
+    ciclo:"5 meses", unidade:"cx/20kg",
+    prod_ref:4000, custo_unit_ref:23.18,
+    p_mercado:35.00, p_paa:40.00, p_pnae:42.00,
+    fonte:"EMATER/DF — Custo de Produção 2º Semestre 2025",
+    obs:["Plantio: 1,5m × 0,5m em canteiros com gotejamento e mulching","~13.200 plantas/ha · Rendimento colheita: 50 cx/dia.homem","Estacas e arame considerados como investimento (não incluídos)"],
+    operacoes:["Preparo do solo","Implantação irrigação","Aplicação de mulching","Formação de mudas","Transplantio","Construção de suporte","Fertirrigação","Desbrota e amarrio","Aplicação de agrotóxico","Colheita/Classificação","Outra"],
+    custos:[
+      {g:"Insumos",item:"Adubo mineral 4-30-10",                       un:"sc/50kg",qtd:30.000,  vu:225.70, vh:6770.85},
+      {g:"Insumos",item:"Adubo mineral Ácido bórico",                  un:"kg",     qtd:20.000,  vu:9.56,   vh:191.20},
+      {g:"Insumos",item:"Adubo mineral Ácido Fosfórico",               un:"kg",     qtd:10.000,  vu:50.00,  vh:500.00},
+      {g:"Insumos",item:"Adubo mineral Cloreto de potássio branco",    un:"sc/25kg",qtd:40.000,  vu:95.85,  vh:3834.00},
+      {g:"Insumos",item:"Adubo mineral Nitrato de cálcio",             un:"sc/25kg",qtd:100.000, vu:89.19,  vh:8918.67},
+      {g:"Insumos",item:"Adubo mineral Sulfato de magnésio",           un:"sc/25kg",qtd:6.000,   vu:73.83,  vh:442.96},
+      {g:"Insumos",item:"Adubo mineral Sulfato de zinco",              un:"kg",     qtd:20.000,  vu:8.78,   vh:175.59},
+      {g:"Insumos",item:"Adubo mineral Termofosfato",                  un:"sc/40kg",qtd:36.000,  vu:148.52, vh:5346.54},
+      {g:"Insumos",item:"Adubo orgânico (Cama de frango)",             un:"t",      qtd:15.000,  vu:350.00, vh:5250.00},
+      {g:"Insumos",item:"Agrotóxico Abamectina 18 g/l",                un:"L",      qtd:2.000,   vu:96.32,  vh:192.64},
+      {g:"Insumos",item:"Agrotóxico Acibenzolar S-Metílico",           un:"kg",     qtd:0.100,   vu:3252.80,vh:325.28},
+      {g:"Insumos",item:"Agrotóxico Ciantoniprole+Lambda-cialotrina",  un:"L",      qtd:0.800,   vu:766.00, vh:612.80},
+      {g:"Insumos",item:"Agrotóxico Clorfenapir 240 g/l",              un:"L",      qtd:1.500,   vu:104.08, vh:156.12},
+      {g:"Insumos",item:"Agrotóxico Difenoconazol 250 g/l",            un:"L",      qtd:1.200,   vu:73.86,  vh:88.63},
+      {g:"Insumos",item:"Agrotóxico Espinosade 480 g/L",               un:"L",      qtd:0.510,   vu:2577.60,vh:1314.58},
+      {g:"Insumos",item:"Agrotóxico Fenpropatrina 300 g/kg",           un:"L",      qtd:0.300,   vu:116.62, vh:34.99},
+      {g:"Insumos",item:"Agrotóxico Isocicloseram 200 g/l",            un:"L",      qtd:0.400,   vu:2224.46,vh:889.78},
+      {g:"Insumos",item:"Agrotóxico Mancozebe 800 g/kg",               un:"kg",     qtd:30.000,  vu:40.48,  vh:1214.40},
+      {g:"Insumos",item:"Agrotóxico Oxicloreto de cobre 840 g/kg",     un:"kg",     qtd:8.000,   vu:78.17,  vh:625.32},
+      {g:"Insumos",item:"Energia elétrica p/ irrigação",               un:"kwh",    qtd:1065.000,vu:0.95,   vh:1011.75},
+      {g:"Insumos",item:"Mulching (bobina 1,6m × 1000m)",             un:"und",    qtd:6.600,   vu:1133.62,vh:7481.86},
+      {g:"Insumos",item:"Sementes de Tomate híbrido",                  un:"mil",    qtd:14.000,  vu:669.60, vh:9374.33},
+      {g:"Serviços",item:"Adubos (Distribuição manual)",               un:"d/h",    qtd:4.000,   vu:110.00, vh:440.00},
+      {g:"Serviços",item:"Adubos (Incorporação mecânica c/ trator)",   un:"h/m",    qtd:4.000,   vu:260.00, vh:1040.00},
+      {g:"Serviços",item:"Agrotóxico (Aplicação)",                     un:"d/h",    qtd:30.000,  vu:110.00, vh:3300.00},
+      {g:"Serviços",item:"Colheita/Classificação/Acondicionamento",    un:"d/h",    qtd:80.000,  vu:110.00, vh:8800.00},
+      {g:"Serviços",item:"Construção (Suporte)",                       un:"d/h",    qtd:20.000,  vu:110.00, vh:2200.00},
+      {g:"Serviços",item:"Desbrota e amarrio",                         un:"d/h",    qtd:120.000, vu:110.00, vh:13200.00},
+      {g:"Serviços",item:"Fertirrigação",                              un:"d/h",    qtd:12.000,  vu:110.00, vh:1320.00},
+      {g:"Serviços",item:"Irrigação (Gotejamento)",                    un:"d/h",    qtd:6.000,   vu:110.00, vh:660.00},
+      {g:"Serviços",item:"Irrigação (Montagem do sistema)",            un:"d/h",    qtd:4.000,   vu:110.00, vh:440.00},
+      {g:"Serviços",item:"Mudas (Formação — bandejas 128 células)",    un:"und",    qtd:109.000, vu:20.00,  vh:2180.00},
+      {g:"Serviços",item:"Mulching (Aplicação de cobertura plástica)", un:"d/h",    qtd:14.000,  vu:110.00, vh:1540.00},
+      {g:"Serviços",item:"Preparo do solo (Aração)",                   un:"h/m",    qtd:3.000,   vu:260.00, vh:780.00},
+      {g:"Serviços",item:"Preparo do solo (Gradagem)",                 un:"h/m",    qtd:2.000,   vu:260.00, vh:520.00},
+      {g:"Serviços",item:"Preparo do solo (Levant. canteiro c/trator)",un:"h/m",    qtd:4.000,   vu:260.00, vh:1040.00},
+      {g:"Serviços",item:"Transplantio",                               un:"d/h",    qtd:4.500,   vu:110.00, vh:495.00},
+    ]
+  },
+  milho:{
+    nome:"Milho Verde", emoji:"🌽", subtitulo:"Com irrigação por aspersão",
+    ciclo:"4 meses", unidade:"unidade",
+    prod_ref:35000, custo_unit_ref:0.34,
+    p_mercado:0.80, p_paa:1.00, p_pnae:1.10,
+    fonte:"EMATER/DF — Custo de Produção 2º Semestre 2025",
+    obs:[],
+    operacoes:["Preparo do solo (Aração)","Preparo do solo (Gradagem)","Plantio mecânico","Adubação de cobertura","Irrigação (Aspersão)","Aplicação de agrotóxico","Colheita/Classificação/Acondicionamento","Outra"],
+    custos:[
+      {g:"Insumos",item:"Adubo mineral 20-00-20",                          un:"sc/50kg",qtd:5.000,   vu:178.38,vh:891.90},
+      {g:"Insumos",item:"Adubo mineral 4-30-16",                           un:"sc/50kg",qtd:16.000,  vu:243.35,vh:3893.60},
+      {g:"Insumos",item:"Adubo mineral Sulfato de amônio",                 un:"sc/50kg",qtd:5.000,   vu:134.36,vh:671.82},
+      {g:"Insumos",item:"Agrotóxico Atrazina 370g/l + S-Metolachlor 290g/l",un:"L",    qtd:4.000,   vu:51.35, vh:205.40},
+      {g:"Insumos",item:"Agrotóxico Lambda-cialotrina 250 g/l",            un:"L",      qtd:0.060,   vu:96.92, vh:5.82},
+      {g:"Insumos",item:"Agrotóxico Triflumurom 480 g/l",                  un:"L",      qtd:0.500,   vu:210.00,vh:105.00},
+      {g:"Insumos",item:"Energia elétrica p/ irrigação",                   un:"kwh",    qtd:1223.000,vu:0.95,  vh:1161.85},
+      {g:"Insumos",item:"Sementes de Milho Verde",                         un:"kg",     qtd:15.000,  vu:49.50, vh:742.50},
+      {g:"Serviços",item:"Adubação (Manual de cobertura)",                 un:"d/h",    qtd:4.000,   vu:110.00,vh:440.00},
+      {g:"Serviços",item:"Agrotóxico (Aplicação)",                         un:"d/h",    qtd:6.000,   vu:110.00,vh:660.00},
+      {g:"Serviços",item:"Colheita/Classificação/Acondicionamento",        un:"d/h",    qtd:10.000,  vu:110.00,vh:1100.00},
+      {g:"Serviços",item:"Irrigação (Aspersão)",                           un:"d/h",    qtd:4.000,   vu:110.00,vh:440.00},
+      {g:"Serviços",item:"Plantio (Mecânico)",                             un:"h/m",    qtd:1.000,   vu:260.00,vh:260.00},
+      {g:"Serviços",item:"Preparo do solo (Aração)",                       un:"h/m",    qtd:3.000,   vu:260.00,vh:780.00},
+      {g:"Serviços",item:"Preparo do solo (Gradagem)",                     un:"h/m",    qtd:2.000,   vu:260.00,vh:520.00},
+    ]
+  },
+  alface:{
+    nome:"Alface", emoji:"🥬", subtitulo:"Aspersão",
+    ciclo:"45 dias", unidade:"cx/5kg",
+    prod_ref:4100, custo_unit_ref:10.75,
+    p_mercado:14.00, p_paa:16.00, p_pnae:17.00,
+    fonte:"EMATER/DF — Custo de Produção 2º Semestre 2025",
+    obs:["Espaçamento 0,25m × 0,25m · 105.600 plantas/ha · Perdas: 5%","30% das plantas não colhidas · Rendimento: 50 cx/dia homem"],
+    operacoes:["Preparo do solo","Formação de mudas","Transplantio","Distribuição de adubos","Adubação de cobertura","Capina manual","Irrigação (Aspersão)","Aplicação de agrotóxico","Colheita/Classificação/Acondicionamento","Outra"],
+    custos:[
+      {g:"Insumos",item:"Adubo mineral 4-30-16",                          un:"sc/50kg",qtd:20.000, vu:243.35,vh:4867.00},
+      {g:"Insumos",item:"Adubo mineral Sulfato de zinco",                 un:"kg",     qtd:20.000, vu:8.78,  vh:175.59},
+      {g:"Insumos",item:"Adubo mineral Uréia",                            un:"sc/50kg",qtd:2.000,  vu:241.78,vh:483.56},
+      {g:"Insumos",item:"Adubo orgânico (Cama de frango)",                un:"t",      qtd:10.000, vu:350.00,vh:3500.00},
+      {g:"Insumos",item:"Agrotóxico Azadiractina 12g/l",                  un:"L",      qtd:1.500,  vu:284.26,vh:426.39},
+      {g:"Insumos",item:"Agrotóxico Imidacloprido 700 g/kg",              un:"kg",     qtd:0.300,  vu:112.00,vh:33.60},
+      {g:"Insumos",item:"Agrotóxico Iprodiona 500 g/l",                   un:"L",      qtd:3.000,  vu:197.74,vh:593.22},
+      {g:"Insumos",item:"Energia elétrica p/ irrigação",                  un:"kwh",    qtd:642.000,vu:0.95,  vh:609.90},
+      {g:"Serviços",item:"Adubação (Manual de cobertura)",                un:"d/h",    qtd:3.000,  vu:110.00,vh:330.00},
+      {g:"Serviços",item:"Adubos (Distribuição manual)",                  un:"d/h",    qtd:4.000,  vu:110.00,vh:440.00},
+      {g:"Serviços",item:"Agrotóxico (Aplicação)",                        un:"d/h",    qtd:5.000,  vu:110.00,vh:550.00},
+      {g:"Serviços",item:"Capina (Manual)",                               un:"d/h",    qtd:60.000, vu:110.00,vh:6600.00},
+      {g:"Serviços",item:"Colheita/Classificação/Acondicionamento",       un:"d/h",    qtd:82.000, vu:110.00,vh:9020.00},
+      {g:"Serviços",item:"Irrigação (Aspersão)",                          un:"d/h",    qtd:2.000,  vu:110.00,vh:220.00},
+      {g:"Serviços",item:"Irrigação (Montagem do sistema)",               un:"d/h",    qtd:2.000,  vu:110.00,vh:220.00},
+      {g:"Serviços",item:"Mudas (Formação — bandejas 200 células)",       un:"und",    qtd:554.000,vu:20.50, vh:11357.00},
+      {g:"Serviços",item:"Preparo solo (Lev. cant. c/ rotoencanteirador)",un:"h/m",    qtd:4.000,  vu:260.00,vh:1040.00},
+      {g:"Serviços",item:"Preparo do solo (Aração)",                      un:"h/m",    qtd:3.000,  vu:260.00,vh:780.00},
+      {g:"Serviços",item:"Preparo do solo (Gradagem)",                    un:"h/m",    qtd:2.000,  vu:260.00,vh:520.00},
+      {g:"Serviços",item:"Transplantio",                                  un:"d/h",    qtd:21.000, vu:110.00,vh:2310.00},
+    ]
+  }
+};
+
+// ─── UTILS ─────────────────────────────────────────────────────────
+const fmt  = v=>`R$ ${Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const fmtN = v=>Number(v).toLocaleString("pt-BR",{maximumFractionDigits:1});
+const today= ()=>new Date().toISOString().slice(0,10);
+const uid  = ()=>Math.random().toString(36).slice(2,9);
+
+async function sGet(k){try{const r=await window.storage.get(k);return r?JSON.parse(r.value):null;}catch{return null;}}
+async function sSet(k,v){try{await window.storage.set(k,JSON.stringify(v));}catch{}}
+
+// ─── TOOLTIP COMPONENT ─────────────────────────────────────────────
+function InfoTooltip({text}){
+  const [visible,setVisible]=useState(false);
+  const [pos,setPos]=useState({top:0,left:0});
+  const btnRef=useRef(null);
+  if(!text) return null;
+
+  const show=()=>{
+    if(btnRef.current){
+      const r=btnRef.current.getBoundingClientRect();
+      setPos({top:r.bottom+6,left:Math.max(8,Math.min(r.left-120,window.innerWidth-280))});
+    }
+    setVisible(true);
+  };
+
+  return(
+    <span style={{position:"relative",display:"inline-flex",alignItems:"center",marginLeft:5}}>
+      <span ref={btnRef} onMouseEnter={show} onMouseLeave={()=>setVisible(false)}
+        style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
+          width:16,height:16,borderRadius:"50%",background:"#2E6DA4",color:"#fff",
+          fontSize:10,fontWeight:800,cursor:"help",flexShrink:0,lineHeight:1}}>
+        ?
+      </span>
+      {visible&&(
+        <div style={{position:"fixed",top:pos.top,left:pos.left,zIndex:9999,
+          background:"#1B3A5C",color:"#fff",borderRadius:10,padding:"10px 14px",
+          maxWidth:280,fontSize:12,lineHeight:1.55,boxShadow:"0 8px 24px rgba(0,0,0,0.25)",
+          pointerEvents:"none"}}>
+          {text}
+          <div style={{position:"absolute",top:-6,left:130,width:12,height:12,
+            background:"#1B3A5C",transform:"rotate(45deg)",borderRadius:2}}/>
+        </div>
+      )}
+    </span>
+  );
+}
+
+// ─── COMPONENTES BASE ──────────────────────────────────────────────
+const Btn=({children,onClick,color=C.dark,full=false,disabled=false,sm=false})=>(
+  <button onClick={onClick} disabled={disabled} style={{
+    padding:sm?"7px 14px":"10px 20px",borderRadius:8,border:"none",
+    background:disabled?"#CCC":color,color:"#fff",fontWeight:700,
+    fontSize:sm?12:13,cursor:disabled?"not-allowed":"pointer",
+    width:full?"100%":"auto",transition:"all .2s"
+  }}>{children}</button>
+);
+
+const Card=({children,style={}})=>(
+  <div style={{background:"#fff",borderRadius:14,padding:"18px 20px",
+    boxShadow:"0 2px 8px rgba(0,0,0,0.07)",marginBottom:14,...style}}>{children}</div>
+);
+
+const Tag=({text,color=C.mid})=>(
+  <span style={{background:color+"22",color,border:`1px solid ${color}44`,
+    borderRadius:99,padding:"2px 9px",fontSize:11,fontWeight:700}}>{text}</span>
+);
+
+const KPI=({label,value,sub,color,bg})=>(
+  <div style={{background:bg,borderRadius:12,padding:"12px 14px",border:`1px solid ${color}22`}}>
+    <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase",marginBottom:5}}>{label}</div>
+    <div style={{fontSize:17,fontWeight:800,color}}>{value}</div>
+    {sub&&<div style={{fontSize:11,color:C.silver,marginTop:3}}>{sub}</div>}
+  </div>
+);
+
+// ─── AUTH ──────────────────────────────────────────────────────────
+function AuthScreen({onLogin}){
+  const [modo,setModo]=useState("login");
+  const [nome,setNome]=useState(""); const [prop,setProp]=useState("");
+  const [mun,setMun]=useState("");   const [pin,setPin]=useState("");
+  const [pin2,setPin2]=useState(""); const [erro,setErro]=useState("");
+  const [load,setLoad]=useState(false);
+
+  const inp=(label,val,set,type="text",ph="")=>(
+    <div style={{marginBottom:12}}>
+      <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>{label}</div>
+      <input type={type} value={val} onChange={e=>set(e.target.value)} placeholder={ph}
+        style={{width:"calc(100% - 24px)",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark}}/>
+    </div>
+  );
+
+  const login=async()=>{
+    if(!nome.trim()||!pin){setErro("Preencha nome e PIN.");return;}
+    setLoad(true);setErro("");
+    const users=await sGet("agro_users")||{};
+    const key=nome.trim().toLowerCase();
+    if(!users[key]){setErro("Produtor não cadastrado.");setLoad(false);return;}
+    if(users[key].pin!==pin){setErro("PIN incorreto.");setLoad(false);return;}
+    onLogin({id:key,...users[key]});setLoad(false);
+  };
+
+  const cadastro=async()=>{
+    if(!nome.trim()||!prop.trim()||!mun.trim()||!pin||!pin2){setErro("Preencha todos os campos.");return;}
+    if(pin.length!==4||isNaN(pin)){setErro("PIN: exatamente 4 números.");return;}
+    if(pin!==pin2){setErro("PINs não coincidem.");return;}
+    setLoad(true);setErro("");
+    const users=await sGet("agro_users")||{};
+    const key=nome.trim().toLowerCase();
+    if(users[key]){setErro("Já cadastrado. Faça o login.");setLoad(false);return;}
+    users[key]={nome:nome.trim(),propriedade:prop.trim(),municipio:mun.trim(),pin,cadastro:today()};
+    await sSet("agro_users",users);
+    onLogin({id:key,...users[key]});setLoad(false);
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.dark},${C.mid})`,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"#fff",borderRadius:20,padding:"36px 32px",width:"100%",maxWidth:400,
+        boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontSize:42,marginBottom:8}}>🌱</div>
+          <div style={{fontSize:22,fontWeight:900,color:C.dark}}>AgroGestão</div>
+          <div style={{fontSize:12,color:C.silver,marginTop:4}}>Sistema de Gestão · Agricultura Familiar</div>
+          <div style={{marginTop:8,background:C.emater+"15",borderRadius:8,padding:"5px 12px",display:"inline-block"}}>
+            <span style={{fontSize:11,color:C.emater,fontWeight:700}}>📋 Dados oficiais: EMATER/DF 2025</span>
+          </div>
+        </div>
+        <div style={{display:"flex",background:"#F0F4F8",borderRadius:10,padding:4,marginBottom:22}}>
+          {["login","cadastro"].map(m=>(
+            <button key={m} onClick={()=>{setModo(m);setErro("");}}
+              style={{flex:1,padding:"8px 0",borderRadius:7,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,
+                background:modo===m?C.dark:"transparent",color:modo===m?"#fff":"#888",transition:"all .2s"}}>
+              {m==="login"?"🔑 Entrar":"📝 Cadastrar"}
+            </button>
+          ))}
+        </div>
+        {modo==="login"
+          ?<>{inp("Seu nome",nome,setNome,"text","Como você se chama")}{inp("PIN (4 dígitos)",pin,setPin,"password","••••")}</>
+          :<>
+            {inp("Nome completo",nome,setNome,"text","Nome do produtor")}
+            {inp("Nome da propriedade",prop,setProp,"text","Ex: Sítio Esperança")}
+            {inp("Município / Estado",mun,setMun,"text","Ex: Mogi das Cruzes - SP")}
+            {inp("Criar PIN (4 dígitos)",pin,v=>setPin(v.replace(/\D/g,"").slice(0,4)),"password","••••")}
+            {inp("Confirmar PIN",pin2,v=>setPin2(v.replace(/\D/g,"").slice(0,4)),"password","••••")}
+          </>
+        }
+        {erro&&<div style={{background:C.lRed,color:C.red,borderRadius:8,padding:"9px 12px",fontSize:13,marginBottom:12}}>{erro}</div>}
+        <Btn onClick={modo==="login"?login:cadastro} color={C.green} full disabled={load}>
+          {load?"Aguarde...":(modo==="login"?"Entrar no Sistema":"Criar Conta e Entrar")}
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
+// ─── ABA PLANILHA ──────────────────────────────────────────────────
+function AbaPlanilha({cKey,area,userId}){
+  const c=CULTURAS[cKey];
+  const [ov,setOv]=useState({});
+  const [prod,setProd]=useState("");
+  const [preco,setPreco]=useState("");
+
+  useEffect(()=>{sGet(`ov_${userId}_${cKey}`).then(d=>setOv(d||{}));setProd("");setPreco("");},[userId,cKey]);
+
+  const getVh=i=>ov[i]!==undefined?ov[i]:c.custos[i].vh;
+  const setVh=(i,v)=>{const n={...ov,[i]:parseFloat(v)||0};setOv(n);sSet(`ov_${userId}_${cKey}`,n);};
+  const reset=()=>{setOv({});sSet(`ov_${userId}_${cKey}`,{});};
+
+  const subtotais=useMemo(()=>{
+    const m={};
+    c.custos.forEach((item,i)=>{m[item.g]=(m[item.g]||0)+(getVh(i)*area);});
+    return m;
+  },[ov,area,cKey]);
+
+  const custoTotalHa=useMemo(()=>c.custos.reduce((s,_,i)=>s+getVh(i),0),[ov,cKey]);
+  const custoTotal=custoTotalHa*area;
+  const produtividade=parseFloat(prod)||c.prod_ref;
+  const precoVenda=parseFloat(preco)||c.p_mercado;
+  const receita=produtividade*precoVenda*area;
+  const lucro=receita-custoTotal;
+  const margem=receita>0?(lucro/receita*100):0;
+  const custoUnit=produtividade>0?(custoTotal/(produtividade*area)):0;
+  const pontEq=precoVenda>0?(custoTotal/(precoVenda*area)):0;
+  const ematerRef=c.custos.reduce((s,i)=>s+i.vh,0);
+  const difEm=custoTotalHa-ematerRef;
+
+  const dadosPizza=Object.entries(subtotais).map(([k,v])=>({name:k,value:Math.round(v)}));
+  const dadosBar=[
+    {canal:"Mercado",receita:Math.round(produtividade*c.p_mercado*area),custo:Math.round(custoTotal),lucro:Math.round(produtividade*c.p_mercado*area-custoTotal)},
+    {canal:"PAA",    receita:Math.round(produtividade*c.p_paa*area),    custo:Math.round(custoTotal),lucro:Math.round(produtividade*c.p_paa*area-custoTotal)},
+    {canal:"PNAE",   receita:Math.round(produtividade*c.p_pnae*area),   custo:Math.round(custoTotal),lucro:Math.round(produtividade*c.p_pnae*area-custoTotal)},
+  ];
+
+  return(
+    <div>
+      {/* Badge EMATER */}
+      <div style={{background:C.emater+"12",border:`1px solid ${C.emater}33`,borderRadius:10,
+        padding:"10px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+        <div style={{fontSize:12,color:C.emater,fontWeight:700}}>📋 {c.fonte} · {c.nome} ({c.subtitulo})</div>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <span style={{fontSize:12,color:C.emater}}>Ref. EMATER: <strong>{fmt(ematerRef)}/ha</strong></span>
+          {difEm!==0&&<Tag text={`${difEm>0?"+":""}${fmt(difEm)}/ha`} color={difEm>0?C.red:C.green}/>}
+          <button onClick={reset} style={{background:"none",border:`1px solid ${C.emater}`,color:C.emater,
+            borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>↩ Restaurar EMATER</button>
+        </div>
+      </div>
+
+      {/* Inputs */}
+      <Card>
+        <div style={{fontWeight:700,color:C.dark,marginBottom:12,fontSize:14}}>⚙️ Dados da Produção</div>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+          {[{l:`Produtividade real (${c.unidade}/ha)`,v:prod,s:setProd,ph:`Ref. EMATER: ${c.prod_ref}`},
+            {l:`Preço de venda (R$/${c.unidade})`,v:preco,s:setPreco,ph:`Mercado: R$ ${c.p_mercado}`}].map((f,i)=>(
+            <div key={i}>
+              <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>{f.l}</div>
+              <input type="number" value={f.v} onChange={e=>f.s(e.target.value)} placeholder={f.ph}
+                style={{width:180,padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark}}/>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:8,fontSize:11,color:"#888"}}>
+          Ciclo: <strong>{c.ciclo}</strong> · Produtividade ref.: <strong>{c.prod_ref} {c.unidade}/ha</strong> · Custo/un. EMATER: <strong>{fmt(c.custo_unit_ref)}</strong>
+        </div>
+      </Card>
+
+      {/* KPIs */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(135px,1fr))",gap:10,marginBottom:14}}>
+        <KPI label="Custo Total"        value={fmt(custoTotal)}  sub={`${fmt(custoTotalHa)}/ha`}  color={C.red}  bg={C.lRed}/>
+        <KPI label="Receita Bruta"      value={fmt(receita)}     sub={`${fmtN(produtividade)} × ${fmt(precoVenda)}`} color={C.mid} bg={C.lBlue}/>
+        <KPI label="Lucro / Margem"     value={fmt(lucro)}       sub={`${margem.toFixed(1)}%`}     color={lucro>=0?C.green:C.red} bg={lucro>=0?C.lGreen:C.lRed}/>
+        <KPI label="Custo Unitário"     value={fmt(custoUnit)}   sub={`por ${c.unidade}`}          color={C.orange} bg={C.lOrange}/>
+        <KPI label="Ponto de Equilíbrio" value={`${fmtN(pontEq)} ${c.unidade}/ha`} sub="mín. p/ cobrir custos" color={C.gray} bg="#F4F6F8"/>
+      </div>
+
+      {/* Tabela com tooltips */}
+      <Card style={{padding:0}}>
+        <div style={{padding:"14px 18px",borderBottom:"1px solid #EEE",display:"flex",
+          justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <div style={{fontWeight:700,color:C.dark,fontSize:14}}>{c.emoji} Planilha de Custos — {c.nome} · {area} ha</div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:11,color:C.mid,fontWeight:600}}>
+              💡 Passe o mouse no <span style={{background:C.mid,color:"#fff",borderRadius:"50%",padding:"1px 5px",fontSize:10,fontWeight:800}}>?</span> para ver a descrição do item
+            </span>
+          </div>
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr style={{background:C.dark,color:"#fff"}}>
+                <th style={{padding:"9px 14px",textAlign:"left",whiteSpace:"nowrap"}}>Grupo</th>
+                <th style={{padding:"9px 14px",textAlign:"left"}}>Descrição</th>
+                <th style={{padding:"9px 10px",textAlign:"center"}}>Un.</th>
+                <th style={{padding:"9px 10px",textAlign:"center"}}>Qtd</th>
+                <th style={{padding:"9px 10px",textAlign:"right"}}>Vr. Unit.</th>
+                <th style={{padding:"9px 10px",textAlign:"right",background:"#2d5f7a"}}>EMATER R$/ha</th>
+                <th style={{padding:"9px 10px",textAlign:"right",background:C.mid}}>Seu custo R$/ha</th>
+                <th style={{padding:"9px 14px",textAlign:"right",background:"#154360",whiteSpace:"nowrap"}}>Total ({area}ha)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {c.custos.map((item,idx)=>{
+                const firstOfGroup=idx===0||c.custos[idx-1].g!==item.g;
+                const vhProd=getVh(idx);
+                const changed=Math.abs(vhProd-item.vh)>0.01;
+                const descricao=DESC[item.item];
+                return(
+                  <tr key={idx} style={{background:idx%2===0?"#FAFBFC":"#fff",borderBottom:"1px solid #F0F0F0"}}>
+                    <td style={{padding:"8px 14px",color:C.dark,fontWeight:firstOfGroup?800:400,fontSize:11,whiteSpace:"nowrap"}}>
+                      {firstOfGroup?item.g:""}
+                    </td>
+                    <td style={{padding:"8px 14px",color:"#333",lineHeight:1.4}}>
+                      <div style={{display:"flex",alignItems:"center",gap:2}}>
+                        <span>{item.item}</span>
+                        <InfoTooltip text={descricao}/>
+                      </div>
+                    </td>
+                    <td style={{padding:"8px 10px",textAlign:"center",color:"#888",fontSize:10,whiteSpace:"nowrap"}}>{item.un}</td>
+                    <td style={{padding:"8px 10px",textAlign:"center",color:"#888"}}>{item.qtd}</td>
+                    <td style={{padding:"8px 10px",textAlign:"right",color:"#999",fontSize:11}}>{fmt(item.vu)}</td>
+                    <td style={{padding:"8px 10px",textAlign:"right",color:"#666",background:"#F0F7FF"}}>{fmt(item.vh)}</td>
+                    <td style={{padding:"5px 10px",textAlign:"right",background:"#EBF5FB"}}>
+                      <input type="number" value={vhProd} onChange={e=>setVh(idx,e.target.value)}
+                        style={{width:88,textAlign:"right",border:`1.5px solid ${changed?"#F39C12":"#AED6F1"}`,
+                          borderRadius:6,padding:"4px 8px",fontSize:12,fontWeight:700,
+                          color:changed?C.orange:C.dark,background:"#fff"}}/>
+                    </td>
+                    <td style={{padding:"8px 14px",textAlign:"right",fontWeight:700,color:C.dark,background:"#D6EAF8",whiteSpace:"nowrap"}}>{fmt(vhProd*area)}</td>
+                  </tr>
+                );
+              })}
+              {Object.entries(subtotais).map(([g,v])=>(
+                <tr key={`st_${g}`} style={{background:C.lBlue,borderTop:"2px solid "+C.mid}}>
+                  <td colSpan={6} style={{padding:"7px 14px",fontWeight:800,color:C.mid,fontSize:11,textTransform:"uppercase"}}>Subtotal — {g}</td>
+                  <td style={{padding:"7px 10px",textAlign:"right",fontWeight:800,color:C.mid}}>{fmt(v/area)}</td>
+                  <td style={{padding:"7px 14px",textAlign:"right",fontWeight:800,color:C.mid,background:"#AED6F1"}}>{fmt(v)}</td>
+                </tr>
+              ))}
+              <tr style={{background:C.dark}}>
+                <td colSpan={6} style={{padding:"11px 14px",fontWeight:800,color:"#fff",fontSize:14}}>CUSTO TOTAL — {area} ha</td>
+                <td style={{padding:"11px 10px",textAlign:"right",fontWeight:800,color:"#fff"}}>{fmt(custoTotalHa)}<br/><span style={{fontSize:10,opacity:.7}}>/ha</span></td>
+                <td style={{padding:"11px 14px",textAlign:"right",fontWeight:900,color:"#fff",fontSize:16,background:"#154360"}}>{fmt(custoTotal)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {c.obs.length>0&&(
+          <div style={{padding:"10px 18px",background:"#F8FFF8",borderTop:"1px solid #E0E0E0"}}>
+            <div style={{fontSize:11,fontWeight:700,color:C.emater,marginBottom:4}}>📌 Observações EMATER:</div>
+            {c.obs.map((o,i)=><div key={i} style={{fontSize:11,color:"#555",marginTop:2}}>· {o}</div>)}
+          </div>
+        )}
+        <div style={{padding:"8px 18px",background:"#F0F4F8",fontSize:10,color:"#888"}}>
+          Fonte: {c.fonte} · Valores em R$/ha. Coluna laranja = valor editado pelo produtor. Botão ↩ restaura dados EMATER originais.
+        </div>
+      </Card>
+
+      {/* Gráficos */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <Card>
+          <div style={{fontWeight:700,color:C.dark,marginBottom:10,fontSize:13}}>🥧 Composição dos Custos</div>
+          <ResponsiveContainer width="100%" height={190}>
+            <PieChart>
+              <Pie data={dadosPizza} cx="50%" cy="50%" outerRadius={70} dataKey="value"
+                label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`} labelLine={false} fontSize={11}>
+                {dadosPizza.map((_,i)=><Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]}/>)}
+              </Pie>
+              <Tooltip formatter={v=>fmt(v)}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,color:C.dark,marginBottom:10,fontSize:13}}>📊 Resultado por Canal</div>
+          <ResponsiveContainer width="100%" height={190}>
+            <BarChart data={dadosBar} margin={{top:4,right:4,bottom:4,left:4}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#EEE"/>
+              <XAxis dataKey="canal" tick={{fontSize:10}}/>
+              <YAxis tick={{fontSize:9}} tickFormatter={v=>`R$${(v/1000).toFixed(0)}k`}/>
+              <Tooltip formatter={v=>fmt(v)}/>
+              <Legend wrapperStyle={{fontSize:10}}/>
+              <Bar dataKey="custo" name="Custo" fill={C.red} radius={[4,4,0,0]}/>
+              <Bar dataKey="receita" name="Receita" fill={C.mid} radius={[4,4,0,0]}/>
+              <Bar dataKey="lucro" name="Lucro" fill={C.green} radius={[4,4,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      {/* Canais */}
+      <Card>
+        <div style={{fontWeight:700,color:C.dark,marginBottom:12,fontSize:14}}>💰 Comparativo de Canais de Venda</div>
+        <div style={{display:"grid",gap:10}}>
+          {[
+            {canal:"Mercado Comum",preco:c.p_mercado,cor:C.mid,icon:"🛒",desc:"Atravessador, CEASA, feira. Preço sujeito à sazonalidade."},
+            {canal:"PAA",preco:c.p_paa,cor:C.green,icon:"🏛️",desc:"Compra governamental direta. Preço fixo e garantido. Exige DAP/CAF e vínculo em cooperativa ou associação."},
+            {canal:"PNAE",preco:c.p_pnae,cor:"#7D3C98",icon:"🏫",desc:"Alimentação escolar. Preço acima do mercado. 30% obrigatório p/ agricultura familiar (Lei 11.947/2009)."},
+          ].map((ch,i)=>{
+            const rec=produtividade*ch.preco*area;
+            const luc=rec-custoTotal;
+            return(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                background:"#F8F9FA",borderRadius:10,padding:"12px 16px",borderLeft:`5px solid ${ch.cor}`,flexWrap:"wrap",gap:8}}>
+                <div>
+                  <div style={{fontWeight:800,color:ch.cor,fontSize:14}}>{ch.icon} {ch.canal}</div>
+                  <div style={{fontSize:11,color:"#666",marginTop:2,maxWidth:380}}>{ch.desc}</div>
+                </div>
+                <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                  {[{l:`R$/${c.unidade}`,v:fmt(ch.preco)},{l:"Receita",v:fmt(rec)},{l:"Lucro",v:fmt(luc),dest:true}].map((m,j)=>(
+                    <div key={j} style={{background:m.dest?ch.cor:"#F0F4F8",borderRadius:8,padding:"8px 12px",textAlign:"center",minWidth:100}}>
+                      <div style={{fontSize:9,color:m.dest?"rgba(255,255,255,0.75)":"#888",fontWeight:700,textTransform:"uppercase",marginBottom:3}}>{m.l}</div>
+                      <div style={{fontSize:14,fontWeight:800,color:m.dest?"#fff":C.dark}}>{m.v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ─── ABA DIÁRIO ────────────────────────────────────────────────────
+function AbaDiario({userId,cKey}){
+  const c=CULTURAS[cKey];
+  const [entries,setEntries]=useState([]);
+  const [form,setForm]=useState({data:today(),op:c.operacoes[0],area:"",obs:""});
+  const [load,setLoad]=useState(true);
+
+  useEffect(()=>{sGet(`diary_${userId}`).then(d=>{setEntries(d||[]);setLoad(false);});},[userId]);
+  useEffect(()=>{setForm(f=>({...f,op:c.operacoes[0]}));},[cKey]);
+
+  const salvar=async()=>{
+    if(!form.data||!form.op) return;
+    const n=[...entries,{id:uid(),cultura:cKey,...form,ts:Date.now()}];
+    setEntries(n);await sSet(`diary_${userId}`,n);
+    setForm({data:today(),op:c.operacoes[0],area:"",obs:""});
+  };
+  const del=async id=>{const n=entries.filter(e=>e.id!==id);setEntries(n);await sSet(`diary_${userId}`,n);};
+
+  if(load) return <Card><div style={{textAlign:"center",color:C.silver,padding:20}}>Carregando...</div></Card>;
+
+  return(
+    <div>
+      <Card>
+        <div style={{fontWeight:700,color:C.dark,marginBottom:14,fontSize:14}}>📝 Novo Registro de Campo</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Data</div>
+            <input type="date" value={form.data} onChange={e=>setForm({...form,data:e.target.value})}
+              style={{width:"calc(100% - 24px)",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark}}/>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Operação</div>
+            <select value={form.op} onChange={e=>setForm({...form,op:e.target.value})}
+              style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark,background:"#fff"}}>
+              {c.operacoes.map(op=><option key={op}>{op}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Área (ha)</div>
+            <input type="number" value={form.area} onChange={e=>setForm({...form,area:e.target.value})}
+              placeholder="Ex: 0.5" step="0.1"
+              style={{width:"calc(100% - 24px)",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark}}/>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Observações</div>
+            <input type="text" value={form.obs} onChange={e=>setForm({...form,obs:e.target.value})}
+              placeholder="Condições, ocorrências, estimativa..."
+              style={{width:"calc(100% - 24px)",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark}}/>
+          </div>
+        </div>
+        <div style={{marginTop:14}}><Btn onClick={salvar} color={C.green}>✅ Registrar Operação</Btn></div>
+      </Card>
+      <Card>
+        <div style={{fontWeight:700,color:C.dark,marginBottom:12,fontSize:14}}>📋 Histórico ({entries.length} registros)</div>
+        {entries.length===0
+          ?<div style={{textAlign:"center",color:C.silver,padding:24}}>Nenhum registro ainda.</div>
+          :<div style={{display:"grid",gap:7}}>
+            {[...entries].reverse().map(e=>(
+              <div key={e.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",
+                background:"#F8F9FA",borderRadius:10,padding:"11px 14px",borderLeft:`4px solid ${C.green}`}}>
+                <div>
+                  <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:3,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,color:C.dark,fontSize:13}}>{e.op}</span>
+                    <Tag text={`${CULTURAS[e.cultura]?.emoji} ${CULTURAS[e.cultura]?.nome}`} color={C.mid}/>
+                    {e.area&&<Tag text={`${e.area} ha`} color={C.orange}/>}
+                  </div>
+                  <div style={{fontSize:11,color:C.silver}}>{e.data.split("-").reverse().join("/")} {e.obs&&"· "+e.obs}</div>
+                </div>
+                <button onClick={()=>del(e.id)} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:16}}>✕</button>
+              </div>
+            ))}
+          </div>
+        }
+      </Card>
+    </div>
+  );
+}
+
+// ─── ABA LIVRO CAIXA ───────────────────────────────────────────────
+function AbaLivro({userId}){
+  const cats={despesa:["Insumos","Mecanização","Mão de obra","Frete/Transporte","Energia/Água","Equipamentos","ATER","Outros"],
+              receita:["Venda direta","PAA","PNAE","CEASA/Mercado","Outro"]};
+  const pags=["Dinheiro","PIX","Transferência","Cheque","Cartão","A prazo"];
+  const [lancs,setLancs]=useState([]);
+  const [form,setForm]=useState({data:today(),tipo:"despesa",cat:"Insumos",desc:"",valor:"",pag:"Dinheiro"});
+  const [load,setLoad]=useState(true);
+
+  useEffect(()=>{sGet(`caixa_${userId}`).then(d=>{setLancs(d||[]);setLoad(false);});},[userId]);
+
+  const lancar=async()=>{
+    if(!form.desc.trim()||!form.valor||parseFloat(form.valor)<=0) return;
+    const n=[...lancs,{id:uid(),...form,valor:parseFloat(form.valor),ts:Date.now()}];
+    setLancs(n);await sSet(`caixa_${userId}`,n);
+    setForm({data:today(),tipo:form.tipo,cat:cats[form.tipo][0],desc:"",valor:"",pag:"Dinheiro"});
+  };
+  const del=async id=>{const n=lancs.filter(l=>l.id!==id);setLancs(n);await sSet(`caixa_${userId}`,n);};
+
+  if(load) return <Card><div style={{textAlign:"center",color:C.silver,padding:20}}>Carregando...</div></Card>;
+
+  const totRec=lancs.filter(l=>l.tipo==="receita").reduce((s,l)=>s+l.valor,0);
+  const totDesp=lancs.filter(l=>l.tipo==="despesa").reduce((s,l)=>s+l.valor,0);
+  const saldo=totRec-totDesp;
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:14}}>
+        <KPI label="Total Receitas" value={fmt(totRec)}  color={C.green}              bg={C.lGreen}/>
+        <KPI label="Total Despesas" value={fmt(totDesp)} color={C.red}                bg={C.lRed}/>
+        <KPI label="Saldo do Caixa" value={fmt(saldo)}   color={saldo>=0?C.green:C.red} bg={saldo>=0?C.lGreen:C.lRed}/>
+      </div>
+      <Card>
+        <div style={{fontWeight:700,color:C.dark,marginBottom:14,fontSize:14}}>💰 Novo Lançamento</div>
+        <div style={{display:"flex",gap:8,marginBottom:14}}>
+          {["despesa","receita"].map(t=>(
+            <button key={t} onClick={()=>setForm({...form,tipo:t,cat:cats[t][0]})}
+              style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,
+                background:form.tipo===t?(t==="despesa"?C.red:C.green):"#EEE",
+                color:form.tipo===t?"#fff":"#888",transition:"all .2s"}}>
+              {t==="despesa"?"📤 Despesa":"📥 Receita"}
+            </button>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Data</div>
+            <input type="date" value={form.data} onChange={e=>setForm({...form,data:e.target.value})}
+              style={{width:"calc(100% - 24px)",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark}}/>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Categoria</div>
+            <select value={form.cat} onChange={e=>setForm({...form,cat:e.target.value})}
+              style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark,background:"#fff"}}>
+              {cats[form.tipo].map(ct=><option key={ct}>{ct}</option>)}
+            </select>
+          </div>
+          <div style={{gridColumn:"1/-1"}}>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Descrição</div>
+            <input type="text" value={form.desc} onChange={e=>setForm({...form,desc:e.target.value})}
+              placeholder="Ex: Compra de adubo, Venda de mandioca para o PAA..."
+              style={{width:"calc(100% - 24px)",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark}}/>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Valor (R$)</div>
+            <input type="number" value={form.valor} onChange={e=>setForm({...form,valor:e.target.value})}
+              placeholder="0,00" step="0.01" min="0"
+              style={{width:"calc(100% - 24px)",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark}}/>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Forma de Pagamento</div>
+            <select value={form.pag} onChange={e=>setForm({...form,pag:e.target.value})}
+              style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,color:C.dark,background:"#fff"}}>
+              {pags.map(p=><option key={p}>{p}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{marginTop:14}}>
+          <Btn onClick={lancar} color={form.tipo==="receita"?C.green:C.red}>
+            {form.tipo==="receita"?"📥 Lançar Receita":"📤 Lançar Despesa"}
+          </Btn>
+        </div>
+      </Card>
+      <Card>
+        <div style={{fontWeight:700,color:C.dark,marginBottom:12,fontSize:14}}>🧾 Extrato ({lancs.length} lançamentos)</div>
+        {lancs.length===0
+          ?<div style={{textAlign:"center",color:C.silver,padding:24}}>Nenhum lançamento registrado.</div>
+          :<div style={{display:"grid",gap:6}}>
+            {[...lancs].reverse().map(l=>{
+              const isR=l.tipo==="receita";
+              return(
+                <div key={l.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                  background:"#F8F9FA",borderRadius:10,padding:"10px 14px",borderLeft:`4px solid ${isR?C.green:C.red}`,flexWrap:"wrap",gap:8}}>
+                  <div>
+                    <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:3,flexWrap:"wrap"}}>
+                      <span style={{fontWeight:700,color:C.dark,fontSize:13}}>{l.desc}</span>
+                      <Tag text={l.cat} color={isR?C.green:C.red}/>
+                      <Tag text={l.pag} color={C.gray}/>
+                    </div>
+                    <div style={{fontSize:11,color:C.silver}}>{l.data.split("-").reverse().join("/")}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontWeight:800,fontSize:15,color:isR?C.green:C.red}}>{isR?"+":"-"}{fmt(l.valor)}</span>
+                    <button onClick={()=>del(l.id)} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:15}}>✕</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        }
+      </Card>
+    </div>
+  );
+}
+
+// ─── APP ────────────────────────────────────────────────────────────
+export default function App(){
+  const [user,setUser]=useState(null);
+  const [boot,setBoot]=useState(true);
+  const [cKey,setCKey]=useState("mandioca");
+  const [area,setArea]=useState(1);
+  const [aba,setAba]=useState("planilha");
+
+  useEffect(()=>{sGet("agro_session").then(s=>{if(s)setUser(s);setBoot(false);});},[]);
+  const login=async u=>{setUser(u);await sSet("agro_session",u);};
+  const logout=async()=>{setUser(null);await sSet("agro_session",null);};
+
+  if(boot) return <div style={{minHeight:"100vh",background:"#F0F4F8",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:C.silver}}>Carregando...</div></div>;
+  if(!user) return <AuthScreen onLogin={login}/>;
+
+  return(
+    <div style={{fontFamily:"Inter,-apple-system,sans-serif",background:"#F0F4F8",minHeight:"100vh"}}>
+      <div style={{background:`linear-gradient(135deg,${C.dark},${C.mid})`,padding:"13px 20px"}}>
+        <div style={{maxWidth:1000,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <div>
+            <div style={{fontWeight:800,color:"#fff",fontSize:16}}>🌱 AgroGestão</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>
+              {user.propriedade} · {user.municipio} · <strong style={{color:"rgba(255,255,255,0.9)"}}>{user.nome}</strong>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <div style={{background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"5px 10px"}}>
+              <span style={{fontSize:10,color:"rgba(255,255,255,0.85)",fontWeight:700}}>📋 EMATER/DF 2025</span>
+            </div>
+            <button onClick={logout} style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",
+              borderRadius:8,padding:"6px 12px",fontWeight:600,fontSize:12,cursor:"pointer"}}>Sair</button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:1000,margin:"0 auto",padding:"14px"}}>
+        <div style={{background:"#fff",borderRadius:12,padding:"12px 16px",marginBottom:12,
+          boxShadow:"0 2px 6px rgba(0,0,0,0.06)",display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontSize:10,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Cultura</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {Object.entries(CULTURAS).map(([k,c])=>(
+                <button key={k} onClick={()=>setCKey(k)}
+                  style={{padding:"6px 13px",borderRadius:99,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,transition:"all .2s",
+                    background:cKey===k?C.dark:"#E8ECF0",color:cKey===k?"#fff":"#555"}}>
+                  {c.emoji} {c.nome}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:"#888",fontWeight:700,textTransform:"uppercase",marginBottom:5}}>Área (ha)</div>
+            <input type="number" min={0.1} max={100} step={0.5} value={area}
+              onChange={e=>setArea(parseFloat(e.target.value)||1)}
+              style={{width:80,padding:"8px 10px",borderRadius:8,border:"1.5px solid #DDD",fontSize:14,fontWeight:700,color:C.dark}}/>
+          </div>
+        </div>
+
+        <div style={{display:"flex",gap:3,background:"#fff",padding:5,borderRadius:12,marginBottom:12,boxShadow:"0 2px 6px rgba(0,0,0,0.06)"}}>
+          {[{id:"planilha",l:"📋 Custos EMATER"},{id:"diario",l:"🌿 Diário de Campo"},{id:"caixa",l:"💰 Livro Caixa"}].map(a=>(
+            <button key={a.id} onClick={()=>setAba(a.id)}
+              style={{flex:1,padding:"9px 4px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:700,fontSize:12,transition:"all .2s",
+                background:aba===a.id?C.dark:"transparent",color:aba===a.id?"#fff":"#888"}}>
+              {a.l}
+            </button>
+          ))}
+        </div>
+
+        {aba==="planilha"&&<AbaPlanilha cKey={cKey} area={area} userId={user.id}/>}
+        {aba==="diario"  &&<AbaDiario   userId={user.id} cKey={cKey}/>}
+        {aba==="caixa"   &&<AbaLivro    userId={user.id}/>}
+
+        <div style={{textAlign:"center",marginTop:16,fontSize:10,color:"#BBB"}}>
+          AgroGestão v4 · TG FATEC Mogi das Cruzes — Gestão em Agronegócio 2026<br/>
+          Dados oficiais: EMATER-DF / SEAGRI-DF · Custo de Produção 2º Semestre 2025
+        </div>
+      </div>
+    </div>
+  );
+}
